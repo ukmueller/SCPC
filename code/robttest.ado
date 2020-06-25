@@ -57,6 +57,10 @@ program robttest, eclass
 	ereturn matrix robpvals = robpvals
 end
 
+//------------------------------------------------------------------------------
+// Define auxiliary programs
+//------------------------------------------------------------------------------
+
 capture program drop rtt_setBM
 program rtt_setBM
 	matrix rtt_Bread=e(V_modelbased)
