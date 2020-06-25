@@ -217,7 +217,7 @@ real scalar getCIlb(real scalar n_sample, real vector Y1, real vector Y2, real s
 		xp=1000
 		for(i=1;i<=4;i++){
 //for(i=4;i<=4;i++){
-            A
+//             A
 			xp=min((xp,getcross(cmus,cLRs[i,.])))
 		}
 		if(xp<1000) return(xp)
@@ -431,5 +431,5 @@ end
 
 //mata saveall()
 mata loadall()
-B
+// B
 
