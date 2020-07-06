@@ -1,0 +1,21 @@
+v 1.0.0
+d 'robttest': Robust t-test alternative for small samples.
+d
+d Standard inference about a scalar parameter estimated via GMM amounts to 
+d applying a t-test to a particular set of observations.
+d  
+d KW: t-statistic
+d KW: extreme value distribution
+d KW: refinement
+d 
+d Requires: Stata version 11 
+d
+d Distribution-Date: 20200706
+d
+d Author: Ulrich K. Müller
+d
+d Support: email umueller@princeton.edu
+d
+F robttest.ado
+F robttest.sthlp
+f all.sd
