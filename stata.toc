@@ -1,0 +1,9 @@
+v 1.0.0
+d Ulrich K. Müller
+d Princeton University
+d umueller@princeton.edu
+d https://github.com/acarril/robttest
+
+d 'robttest': Robust t-test alternative for small samples.
+
+p robttest
