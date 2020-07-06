@@ -9,7 +9,7 @@ mata
 struct tst{
 	real vector lam_stage1, lam
 	real matrix	thlist0_stage1, thlist0
-	real scalar level, k
+	real scalar level, levelu, k
 	real vector cv_zt
 }
 
@@ -42,9 +42,6 @@ real scalar getdens0_stage1(real vector msx, real vector Y, real scalar Zsum, re
 {
 	real scalar ma
 	ma=getmeanadj(msx,Y[length(Y)])
-//	"getdens0_stage1"
-//	ma
-//	getdens_base(msx,Y)
 	return(getdens_base(msx,Y)*exp(-0.5*(Zsum+ma)^2/var)/sqrt(var))
 }
 
@@ -165,26 +162,15 @@ real scalar getCIlb(real scalar n_sample, real vector Y1, real vector Y2, real s
 	real vector cmus
 	real matrix cLRs
 	
-//"entering getCIlb"
-//Y1
-//Y2
-//Y0
 	k=tst.k
 	mu=(sum(Y1)-sum(Y2)+Y0)/n_sample
-//"mu"
-//mu	
 	s=sqrt(1+sum((Y1:-mu):^2)+sum((Y2:+mu):^2))/n_sample
 	mustep=max((1.0/(n_sample-2*k),.1*s))
-//"s"
-//s
-//"tests at muhat"	
-//getLRs(Y1:-mu,Y2:+mu,Y0-(n_sample-2*k)*mu,tst)
 
 	cmus=J(3,1,.)
 	cLRs=J(4,3,0)
 	mu=mu-5*s
 	do{
-//"iterate mu=mu-4s"
 		mu=mu-s
 		cLRs[.,2]=getLRs(Y1:-mu,Y2:+mu,Y0-(n_sample-2*k)*mu,tst)
 	} while(max(cLRs[.,2])>-4)
@@ -193,11 +179,8 @@ real scalar getCIlb(real scalar n_sample, real vector Y1, real vector Y2, real s
 	mu=mu+mustep
 	cmus[3]=mu
 	cLRs[.,3]=getLRs(Y1:-mu,Y2:+mu,Y0-(n_sample-2*k)*mu,tst)
-//j=0	
 	do{
-//		j=j+1
 		maxLR=max(cLRs[.,3])
-//(j,mu,maxLR)		
 		if(maxLR<-4.0){
 			mu=mu+2*mustep
 		}
@@ -213,11 +196,8 @@ real scalar getCIlb(real scalar n_sample, real vector Y1, real vector Y2, real s
 		cmus[3]=mu
 		cLRs[.,1..2]=cLRs[.,2..3]
 		cLRs[.,3]=getLRs(Y1:-mu,Y2:+mu,Y0-(n_sample-2*k)*mu,tst)
-//		(mu\cLRs[.,3])'
 		xp=1000
 		for(i=1;i<=4;i++){
-//for(i=4;i<=4;i++){
-//             A
 			xp=min((xp,getcross(cmus,cLRs[i,.])))
 		}
 		if(xp<1000) return(xp)
@@ -264,15 +244,11 @@ void mytest(real scalar ind)
 	
 	st_view(W=.,.,ind,0)
 	v=W[.,1]
-//	v=v:-mean(v)
-//	v=v:+8*sqrt(variance(v)/length(v))
 	k=4
-//	setYsfromW(v,k,Y1,Y2,Zsum,s)
 	loadall()
 	Y1
 	Y2
 	Zsum
-//	reject(Y1,Y2,Zsum,tsts[1])
 	getCI(v,tsts[3])	
 }
 
@@ -303,45 +279,44 @@ void setpvalfromS(real scalar k)
 	real matrix W
 	real matrix p
 	real vector Y1, Y2,CI
-	real scalar n,scale, Zsum,j,pu,pl,level,tj
+	real scalar n,scale, Zsum,j,pu,pl,pc,level,tj
 
 	loadall()
 	W=st_data(.,"w","rtt_sel")
 	n=length(W)
 	tj=k/4
-//	k=4
 	setYsfromW(W,k,Y1,Y2,Zsum,scale)	
 	CI=getCI(n,Y1,Y2,Zsum,tsts[tj,1])
 	
 	if(CI[1]<0 & CI[2]>0){
-		CI=getCI(n,Y1,Y2,Zsum,tsts[tj,3])
+		CI=getCI(n,Y1,Y2,Zsum,tsts[tj,3])		
 		if(CI[1]<0 & CI[2]>0){
-			pu=1000; pl=100
+			pu=1000; pl=100	; pc=tsts[tj,3].levelu		
 			}
 		else{
+			pu=100; pl=50 ; pc=tsts[tj,1].levelu
 			}
-			pu=100; pl=50
 		}
 	else{
-		CI=getCI(n,Y1,Y2,Zsum,tsts[tj,1])
+		CI=getCI(n,Y1,Y2,Zsum,tsts[tj,2])
 		if(CI[1]<0 & CI[2]>0){
-			pu=50; pl=10
+			pu=50; pl=10; pc=tsts[tj,2].levelu
 			}
 		else{
-			pu=10; pl=0
+			pu=10; pl=2; pc=2
 			}
 		}
-	
+
 	for(j=4;j<=cols(tsts);j++){
-		level=tsts[tj,j].level
+		level=tsts[tj,j].level		
 		if(level>pu) continue
-		if(level<pl) continue
-		if(reject(Y1,Y2,Zsum,tsts[tj,j])) pu=min((pu,level))
-		else pl=max((pl,level))
+		if(level<pl) continue	
+		if(!reject(Y1,Y2,Zsum,tsts[tj,j])) pc=max((tsts[tj,j].levelu,pc))
 	}	
-	p=pu/1000
+	p=pc/1000
 	st_replacematrix("robpval",p)
 	st_matrix("Wextremes", (Y1 , Y2))
+
 }
 
 
@@ -351,7 +326,7 @@ void addmat()
 	real scalar fh
 	real matrix X,Xs
 	st_view(X=.,.,.)
-	fh=fopen("code/all.sd","a")
+	fh=fopen("c:/dropbox/mystuff/heavymean/2020/MATA/all.sd","a")
 	Xs=X[.,(2::cols(X))]
 	fputmatrix(fh,Xs)
 	fclose(fh)
@@ -363,26 +338,26 @@ void saveall()
 	string scalar fname, kname
 	real scalar i,level,k
 	
-	fname="c:/dropbox/mystuff/heavymean/2020/lamth/GQxw.txt"
+	fname="c:/dropbox/mystuff/heavymean/2020/swind/GQxw.txt"
 	fname="import delimited "+fname+", delim("+char(34)+" "+char(34)+", collapse)"
 	fname
 	stata("clear")
 	stata(fname)
 	addmat()
 
-	levellist=(50,10,100,2,4,6,8,20,30,40,60,70,80,90,120,140,160,180,200)
+	levellist=(50,10,100,2,4,6,8,20,30,40,60,70,80,90,120,140,160,180,200,250,300,400,500)
 	for(k=4;k<=8;k=k+4){
 		if(k==4) kname="_4_25_"
 		else kname="_8_50_"
 		for(i=1;i<=length(levellist);i++){
 			level=levellist[i]
-			fname="c:/dropbox/mystuff/heavymean/2020/lamth/lamth_stage1"+kname+strofreal(level)+".txt"
+			fname="c:/dropbox/mystuff/heavymean/2020/swind/lamth_stage1"+kname+strofreal(level)+".txt"
 			fname="import delimited "+fname+", delim("+char(34)+" "+char(34)+", collapse)"
 			fname
 			stata("clear")
 			stata(fname)
 			addmat()
-			fname="c:/dropbox/mystuff/heavymean/2020/lamth/lamth"+kname+strofreal(level)+".txt"
+			fname="c:/dropbox/mystuff/heavymean/2020/swind/lamth"+kname+strofreal(level)+".txt"
 			fname="import delimited "+fname+", delim("+char(34)+" "+char(34)+", collapse)"
 			fname
 			stata("clear")
@@ -399,12 +374,12 @@ void loadall()
 	external struct tst matrix tsts
 	external real matrix GQxw
 	real matrix mdat
-	levellist=(50,10,100,2,4,6,8,20,30,40,60,70,80,90,120,140,160,180,200)
+	levellist=(50,10,100,2,4,6,8,20,30,40,60,70,80,90,120,140,160,180,200,250,300,400,500,1000)
 	tsts=tst(2,length(levellist))
-	fh=fopen("code/all.sd","r")
+	fh=fopen("c:/dropbox/mystuff/heavymean/2020/MATA/all.sd","r")
 	GQxw=fgetmatrix(fh)
 	for(j=1;j<=2;j++){
-		for(i=1;i<=length(levellist);i++){
+		for(i=1;i<=length(levellist)-1;i++){
 			level=levellist[i]
 			mdat=fgetmatrix(fh)
 			tsts[j,i].lam_stage1=mdat[1,.]
@@ -413,6 +388,7 @@ void loadall()
 			tsts[j,i].lam=mdat[1,.]
 			tsts[j,i].thlist0=mdat[2::7,.]
 			tsts[j,i].level=level
+			tsts[j,i].levelu=levellist[i+1]
 			tsts[j,i].k=4*j
 			lx=level/1000
 			tsts[j,i].cv_zt=(invnormal(1-lx/2),invttail(80+10*log(lx), lx/2))
@@ -426,10 +402,5 @@ end
 
 
 
-//capture confirm file "c:/dropbox/mystuff/heavymean/2020/MATA/allx.sd"
-//if _rc==0 erase "c:/dropbox/mystuff/heavymean/2020/MATA/allx.sd"
-
-//mata saveall()
 mata loadall()
-// B
 
