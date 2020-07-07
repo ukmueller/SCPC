@@ -1,6 +1,10 @@
 *! 1.0.0 20200707
+discard
 capture program drop robttest
 program robttest, eclass
+	syntax [if] [in], ///
+		[ K(int -1) ]
+
 //	capture noisily setscores
 //	if _rc!=0 exit
 	rtt_setBM
@@ -12,18 +16,19 @@ program robttest, eclass
 	matrix robpval=(1)
 	matrix robpvals=e(b)
 	tokenize `na'
-	qui sum rtt_sel
-	if r(sum)>=50{
-		local k 8
-		disp "proceeding with default of k=8"
-		}
-	else {
-		if r(sum)>=25 local k 4
+	qui sum rtt_sel, detail
+	
+	// Check and set k
+	if `k' == -1 {
+		if r(sum) >= 50 local k 8
+		else if r(sum)>=25 local k 4
 		else {
-			disp "number of independent obs/clusters smaller than 25; aborting"
-			exit(999)
+			di as error "number of independent observations/clusters smaller than 25"
+			exit 499
 		}
+		di "set k = `k' based on number of observations/clusters (`r(sum)')"
 	}
+	
 	
 	matrix WR = J(colsof(b),`k',.) 
 	matrix rownames WR=`na'
