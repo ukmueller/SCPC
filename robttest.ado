@@ -1,3 +1,4 @@
+*! 1.0.0 20200707
 capture program drop robttest
 program robttest, eclass
 //	capture noisily setscores
