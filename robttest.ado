@@ -1,10 +1,12 @@
+do code/heavymeanmata.do
+
 *! 1.0.0 20200707
 discard
 capture program drop robttest
 program robttest, eclass
 	syntax [if] [in], ///
 		[ K(int -1) ]
-
+	
 //	capture noisily setscores
 //	if _rc!=0 exit
 	rtt_setBM
@@ -14,6 +16,7 @@ program robttest, eclass
 	matrix robCis =e(b)'*(1,1)
 	matrix robCI =(1,2)
 	matrix robpval=(1)
+	
 	matrix robpvals=e(b)
 	tokenize `na'
 	qui sum rtt_sel, detail
@@ -34,22 +37,22 @@ program robttest, eclass
 	matrix WL = WR
 	//matrix myv = e(b)
 	
+	// Loop through covariates
 	local i = 1
 	while "``i''" != "" {
-// 		di "`i'"
-		capture drop w
-		matrix coef=e(N)*rtt_Bread[`i',1...]
-		quietly matrix score w = coef if rtt_sel == 1
-		quietly replace w = w + b[1,`i'] if rtt_sel == 1		
+		tempvar w
+		matrix coef = e(N)*rtt_Bread[`i', 1...]
+		qui matrix score `w' = coef if rtt_sel == 1
+		qui replace `w' = `w' + b[1,`i'] if rtt_sel == 1
 // 		qui sum w if rtt_sel==1
 // 		matrix myv[1,`i']=r(Var)/r(N)
 		mata setCIfromS(`k')
-		matrix robCis[`i',1] = robCI[1,1..2]
-		mata setpvalfromS(`k')
-		matrix robpvals[1,`i'] = robpval[1,1]
+		matrix robCis[`i', 1] = robCI[1, 1..2]
+		mata setpvalfromS(`k', "`w'")
+		matrix robpvals[1,`i'] = robpval[1, 1]
 		matrix Wextremes = Wextremes'
-		matrix WR[`i',1] = Wextremes[1,1...]
-		matrix WL[`i',1] = Wextremes[2,1...]
+		matrix WR[`i', 1] = Wextremes[1, 1...]
+		matrix WL[`i', 1] = Wextremes[2, 1...]
 		local ++i
 	}
 	matrix A=(b \ robpvals \ robCis')'
