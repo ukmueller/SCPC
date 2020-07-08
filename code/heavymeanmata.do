@@ -264,16 +264,16 @@ real matrix getCIfromW(real vector W, struct tst scalar tst)
 	return(CI)
 }
 
-void setCIfromS(real scalar k, string scalar w)
+void setCIfromS(real scalar k, string scalar w, string scalar rtt_sel)
 {
 	external struct tst matrix tsts
 	real matrix W
 	loadall()
-	W=st_data(., w, "rtt_sel")
+	W=st_data(., w, rtt_sel)
 	st_replacematrix("robCI",getCIfromW(W[.,1],tsts[k/4,1]))
 }
 
-void setpvalfromS(real scalar k, string scalar w)
+void setpvalfromS(real scalar k, string scalar w, string scalar rtt_sel)
 {
 	external struct tst matrix tsts
 	real matrix W
@@ -282,7 +282,7 @@ void setpvalfromS(real scalar k, string scalar w)
 	real scalar n,scale, Zsum,j,pu,pl,pc,level,tj
 
 	loadall()
-	W=st_data(., w, "rtt_sel")
+	W=st_data(., w, rtt_sel)
 	n=length(W)
 	tj=k/4
 	setYsfromW(W,k,Y1,Y2,Zsum,scale)	

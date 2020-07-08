@@ -10,7 +10,8 @@ program robttest, eclass
 //	capture noisily setscores
 //	if _rc!=0 exit
 	rtt_setBM
-	rtt_setscores
+	tempvar rtt_sel
+	rtt_setscores, rtt_sel(`rtt_sel')
 	matrix b=e(b)
 	local na : colnames e(V)
 	matrix robCis =e(b)'*(1,1)
@@ -19,7 +20,7 @@ program robttest, eclass
 	
 	matrix robpvals=e(b)
 	tokenize `na'
-	qui sum rtt_sel, detail
+	qui sum `rtt_sel', detail
 	
 	// Set k if not given explicitely
 	if `k' == -1 {
@@ -42,11 +43,11 @@ program robttest, eclass
 	while "``i''" != "" {
 		tempvar w
 		matrix coef = e(N)*rtt_Bread[`i', 1...]
-		qui matrix score `w' = coef if rtt_sel == 1
-		qui replace `w' = `w' + b[1,`i'] if rtt_sel == 1
-		mata setCIfromS(`k', "`w'")
+		qui matrix score `w' = coef if `rtt_sel' == 1
+		qui replace `w' = `w' + b[1,`i'] if `rtt_sel' == 1
+		mata setCIfromS(`k', "`w'", "`rtt_sel'")
 		matrix robCis[`i', 1] = robCI[1, 1..2]
-		mata setpvalfromS(`k', "`w'")
+		mata setpvalfromS(`k', "`w'", "`rtt_sel'")
 		matrix robpvals[1,`i'] = robpval[1, 1]
 		matrix Wextremes = Wextremes'
 		matrix WR[`i', 1] = Wextremes[1, 1...]
@@ -80,6 +81,7 @@ end program
 
 capture program drop rtt_setscores
 program rtt_setscores, sortpreserve
+	syntax, rtt_sel(name)
 	tempvar e
 	local slist ""
 //	quietly{
@@ -123,9 +125,8 @@ program rtt_setscores, sortpreserve
 	}
 	
 	matrix colnames rtt_Bread = `slist'
-	capture drop rtt_sel
-	gen rtt_sel=0
-	if( "`e(clustvar)'"=="") replace rtt_sel=1 if e(sample)
+	gen `rtt_sel'=0
+	if( "`e(clustvar)'"=="") replace `rtt_sel'=1 if e(sample)
 	else{
 		tempvar TotScore
 		sort `e(clustvar)'
@@ -134,7 +135,7 @@ program rtt_setscores, sortpreserve
 			capture drop `TotScore'
 			by `e(clustvar)': egen `TotScore'=total(rtt_score`i') if e(sample)
 			replace rtt_score`i'=`TotScore'
-			by `e(clustvar)': replace rtt_sel = 1 if _n==1 & e(sample)
+			by `e(clustvar)': replace `rtt_sel' = 1 if _n==1 & e(sample)
 			local ++i
 		}
 	}
@@ -143,7 +144,8 @@ end
 
 capture program drop rtt_analyticV
 program rtt_analyticV
-	qui corr rtt_score* if rtt_sel==1, cov 
+	syntax, rtt_sel(name)
+	qui corr rtt_score* if `rtt_sel'==1, cov 
 	tempname V
 	mat `V'=r(N)*rtt_Bread*r(C)*rtt_Bread'
 	mat list `V'
