@@ -264,12 +264,12 @@ real matrix getCIfromW(real vector W, struct tst scalar tst)
 	return(CI)
 }
 
-void setCIfromS(real scalar k)
+void setCIfromS(real scalar k, string scalar w)
 {
 	external struct tst matrix tsts
 	real matrix W
 	loadall()
-	W=st_data(.,"w","rtt_sel")
+	W=st_data(., w, "rtt_sel")
 	st_replacematrix("robCI",getCIfromW(W[.,1],tsts[k/4,1]))
 }
 

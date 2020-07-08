@@ -46,7 +46,7 @@ program robttest, eclass
 		qui replace `w' = `w' + b[1,`i'] if rtt_sel == 1
 // 		qui sum w if rtt_sel==1
 // 		matrix myv[1,`i']=r(Var)/r(N)
-		mata setCIfromS(`k')
+		mata setCIfromS(`k', "`w'")
 		matrix robCis[`i', 1] = robCI[1, 1..2]
 		mata setpvalfromS(`k', "`w'")
 		matrix robpvals[1,`i'] = robpval[1, 1]
