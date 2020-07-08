@@ -9,3 +9,9 @@ sysuse auto, clear
 //  drop if _n > 20
 reg mpg weight length, robust
 robttest
+
+
+
+forvalues k = 1/`=colsof(e(b))' {
+	di "`k'"
+}

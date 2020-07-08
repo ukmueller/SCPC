@@ -6,11 +6,16 @@ capture program drop robttest
 program robttest, eclass
 	syntax [if] [in], ///
 		[ K(int -1) ]
-	
+
+	// Create rtt tempvar
+	tempvar rtt_sel
+	forvalues i = 1/`=colsof(e(b))' {
+		tempvar rtt_score`i'
+	}
+		
 //	capture noisily setscores
 //	if _rc!=0 exit
 	rtt_setBM
-	tempvar rtt_sel
 	rtt_setscores, rtt_sel(`rtt_sel')
 	matrix b=e(b)
 	local na : colnames e(V)
