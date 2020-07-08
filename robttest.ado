@@ -18,7 +18,7 @@ program robttest, eclass
 	tokenize `na'
 	qui sum rtt_sel, detail
 	
-	// Check and set k
+	// Set k if not given explicitely
 	if `k' == -1 {
 		if r(sum) >= 50 local k 8
 		else if r(sum)>=25 local k 4
@@ -29,26 +29,27 @@ program robttest, eclass
 		di "set k = `k' based on number of observations/clusters (`r(sum)')"
 	}
 	
-	
-	matrix WR = J(colsof(b),`k',.) 
-	matrix rownames WR=`na'
+	matrix WR = J(colsof(b),`k', .) 
+	matrix rownames WR = `na'
 	matrix WL = WR
-//matrix myv=e(b)
+	//matrix myv = e(b)
+	
 	local i = 1
 	while "``i''" != "" {
+// 		di "`i'"
 		capture drop w
 		matrix coef=e(N)*rtt_Bread[`i',1...]
-		quietly matrix score w=coef if rtt_sel==1
-		quietly replace w=w+b[1,`i'] if rtt_sel==1		
-//qui sum w if rtt_sel==1
-//matrix myv[1,`i']=r(Var)/r(N)
+		quietly matrix score w = coef if rtt_sel == 1
+		quietly replace w = w + b[1,`i'] if rtt_sel == 1		
+// 		qui sum w if rtt_sel==1
+// 		matrix myv[1,`i']=r(Var)/r(N)
 		mata setCIfromS(`k')
-		matrix robCis[`i',1]=robCI[1,1..2]
+		matrix robCis[`i',1] = robCI[1,1..2]
 		mata setpvalfromS(`k')
-		matrix robpvals[1,`i']=robpval[1,1]
-		matrix Wextremes=Wextremes'
-		matrix WR[`i',1]=Wextremes[1,1...]
-		matrix WL[`i',1]=Wextremes[2,1...]
+		matrix robpvals[1,`i'] = robpval[1,1]
+		matrix Wextremes = Wextremes'
+		matrix WR[`i',1] = Wextremes[1,1...]
+		matrix WL[`i',1] = Wextremes[2,1...]
 		local ++i
 	}
 	matrix A=(b \ robpvals \ robCis')'
@@ -57,7 +58,7 @@ program robttest, eclass
 	local ands = `n'*"&"
 	local rs &-`ands'
 	matlist A, border(rows) title("Results using robust t-tst, k=`k'") cspec(o2& %12s | %9.0g o2 & o1 %5.3f & o2 %9.0g o1 &  o1 %9.0g o2&) rspec(`rs')
-	matlist WR, title("Normalized largest k=`k' terms in right tail") names(rows)
+	matlist WR, border(rows) title("Normalized largest k=`k' terms in right tail") names(rows)
 	matlist WL, title("Normalized largest k=`k' terms in left tail") names(rows)
 	ereturn matrix robCIs = robCis
 	ereturn matrix robpvals = robpvals
