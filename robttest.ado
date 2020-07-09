@@ -138,7 +138,7 @@ program rtt_setscores, sortpreserve
 	
 	matrix colnames rtt_Bread = `slist'
 	gen `rtt_sel'=0
-	if( "`e(clustvar)'"=="") replace `rtt_sel'=1 if e(sample)
+	if( "`e(clustvar)'"=="") qui replace `rtt_sel'=1 if e(sample)
 	else{
 		tempvar TotScore
 		sort `e(clustvar)'
