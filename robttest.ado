@@ -67,8 +67,14 @@ program robttest, eclass
 	matlist A, border(rows) title("Results using robust t-tst, k=`k'") cspec(o2& %12s | %9.0g o2 & o1 %5.3f & o2 %9.0g o1 &  o1 %9.0g o2&) rspec(`rs')
 	matlist WR, border(rows) title("Normalized largest k=`k' terms in right tail") names(rows)
 	matlist WL, title("Normalized largest k=`k' terms in left tail") names(rows)
+	
+	// Return results
 	ereturn matrix robCIs = robCis
 	ereturn matrix robpvals = robpvals
+	
+	// Drop rtt_score variables
+	// TODO: Fix this with tempvars (variable number is the issue)
+	cap drop rtt_score*
 end
 
 //------------------------------------------------------------------------------
