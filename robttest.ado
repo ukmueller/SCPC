@@ -60,13 +60,13 @@ program robttest, eclass sortpreserve
 		local ++i
 	}
 	matrix A=(b \ robpvals \ robCis')'
-	matrix colnames A = Coef p-val "95% Conf" "Interval "
+	matrix colnames A = "Coef" p-val "95% Conf" "Interval "
 	local n = rowsof(A)
 	local ands = `n'*"&"
 	local rs &-`ands'
-	matlist A, border(rows) title("Results using robust t-tst, k=`k'") cspec(o2& %12s | %9.0g o2 & o1 %5.3f & o2 %9.0g o1 &  o1 %9.0g o2&) rspec(`rs')
-	matlist WR, border(rows) title("Normalized largest k=`k' terms in right tail") names(rows)
-	matlist WL, title("Normalized largest k=`k' terms in left tail") names(rows)
+	matlist A, border(all) title("Results using robust t-test, k = `k':") cspec(o2& %12s | %9.0g o2 & o1 %5.3f & o2 %9.0g o1 &  o1 %9.0g o2&) rspec(`rs')
+	matlist WR, border(rows) title("Normalized largest k = `k' terms in right tail:") names(rows)
+	matlist WL, border(rows) title("Normalized largest k = `k' terms in left tail:") names(rows)
 	
 	// Return results
 	ereturn matrix rob_CIs = robCis
