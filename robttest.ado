@@ -1,7 +1,6 @@
 do code/heavymeanmata.do
 
 *! 1.0.0 20200707
-discard
 capture program drop robttest
 program robttest, eclass sortpreserve
 	syntax [if] [in], ///
