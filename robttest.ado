@@ -69,8 +69,10 @@ program robttest, eclass sortpreserve
 	matlist WL, title("Normalized largest k=`k' terms in left tail") names(rows)
 	
 	// Return results
-	ereturn matrix robCIs = robCis
-	ereturn matrix robpvals = robpvals
+	ereturn matrix rob_CIs = robCis
+	ereturn matrix rob_pvals = robpvals
+	ereturn matrix rob_WR = WR
+	ereturn matrix rob_WL = WL
 	
 	// Drop rtt_score variables
 	// TODO: Fix this with tempvars (variable number is the issue)
