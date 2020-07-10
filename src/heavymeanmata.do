@@ -4,7 +4,8 @@ set matastrict on
 mata mata clear
 set matalnum on
 
-findfile "all.sd"
+// Locate "all.sd" file
+qui findfile "all.sd"
 local all_sd `r(fn)'
 
 mata:

@@ -5,7 +5,7 @@ program robttest, eclass sortpreserve
 		[ K(int -1) ]
 
 	// Locate "all.sd" file
-	findfile "all.sd"
+	qui findfile "all.sd"
 	local all_sd `r(fn)'
 	
 	// Create rtt tempvar
