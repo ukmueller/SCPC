@@ -1,13 +1,9 @@
-
-
 *! 1.0.0 20200707
 capture program drop robttest
 program robttest, eclass sortpreserve
 	syntax [if] [in], ///
 		[ K(int -1) ]
 
-		
-	do heavymeanmata.do
 	// Create rtt tempvar
 	tempvar rtt_sel
 	forvalues i = 1/`=colsof(e(b))' {
@@ -171,6 +167,10 @@ program rtt_analyticV
 end program
 
 
+findfile "heavymeanmata.do"
+include "`r(fn)'"
+
+exit
 
 
 //rtt_setBM
