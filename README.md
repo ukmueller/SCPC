@@ -12,7 +12,7 @@ Analytical results in the canonical inference for the mean problem demonstrate t
 `robttest` is not currently available from SSC. To install directly from this repository, you can copy and run the following lines in Stata:
 ```stata
 // Remove program if it existed previously
-cap ado uninstall
+cap ado uninstall robttest
 // Install most up-to-date version
 net install robttest, from("https://raw.githubusercontent.com/acarril/robttest/master/src")
 ```
