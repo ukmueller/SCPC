@@ -329,7 +329,7 @@ void addmat()
 	real scalar fh
 	real matrix X,Xs
 	st_view(X=.,.,.)
-	fh=fopen(`all_sd',"a")
+	fh=fopen("`all_sd'","a")
 	Xs=X[.,(2::cols(X))]
 	fputmatrix(fh,Xs)
 	fclose(fh)
@@ -379,7 +379,7 @@ void loadall()
 	real matrix mdat
 	levellist=(50,10,100,2,4,6,8,20,30,40,60,70,80,90,120,140,160,180,200,250,300,400,500,1000)
 	tsts=tst(2,length(levellist))
-	fh=fopen(`all_sd', "r")
+	fh=fopen("`all_sd'", "r")
 	GQxw=fgetmatrix(fh)
 	for(j=1;j<=2;j++){
 		for(i=1;i<=length(levellist)-1;i++){
