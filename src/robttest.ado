@@ -1,4 +1,4 @@
-do code/heavymeanmata.do
+do heavymeanmata.do
 
 *! 1.0.0 20200707
 capture program drop robttest
