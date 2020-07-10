@@ -4,10 +4,10 @@ set matastrict on
 mata mata clear
 set matalnum on
 
-mata:
-
 findfile "all.sd"
-local all_sd "`r(fn)'"
+local all_sd `r(fn)'
+
+mata:
 
 struct tst{
 	real vector lam_stage1, lam
@@ -238,7 +238,7 @@ void setYsfromW(real vector W, real scalar k, real vector Y1, real vector Y2, re
 	Zsum=Zsum/s
 }
 
-void mytest(real scalar ind)
+void mytest(real scalar ind, string scalar all_sd)
 {
 	real matrix W
 	real vector Y1,Y2,v
@@ -248,7 +248,7 @@ void mytest(real scalar ind)
 	st_view(W=.,.,ind,0)
 	v=W[.,1]
 	k=4
-	loadall()
+	loadall(all_sd)
 	Y1
 	Y2
 	Zsum
@@ -267,16 +267,16 @@ real matrix getCIfromW(real vector W, struct tst scalar tst)
 	return(CI)
 }
 
-void setCIfromS(real scalar k, string scalar w, string scalar rtt_sel)
+void setCIfromS(real scalar k, string scalar w, string scalar rtt_sel, string scalar all_sd)
 {
 	external struct tst matrix tsts
 	real matrix W
-	loadall()
+	loadall(all_sd)
 	W=st_data(., w, rtt_sel)
 	st_replacematrix("robCI",getCIfromW(W[.,1],tsts[k/4,1]))
 }
 
-void setpvalfromS(real scalar k, string scalar w, string scalar rtt_sel)
+void setpvalfromS(real scalar k, string scalar w, string scalar rtt_sel, string scalar all_sd)
 {
 	external struct tst matrix tsts
 	real matrix W
@@ -284,7 +284,7 @@ void setpvalfromS(real scalar k, string scalar w, string scalar rtt_sel)
 	real vector Y1, Y2,CI
 	real scalar n,scale, Zsum,j,pu,pl,pc,level,tj
 
-	loadall()
+	loadall(all_sd)
 	W=st_data(., w, rtt_sel)
 	n=length(W)
 	tj=k/4
@@ -324,18 +324,18 @@ void setpvalfromS(real scalar k, string scalar w, string scalar rtt_sel)
 
 
 	
-void addmat()
+void addmat(string scalar all_sd)
 {
 	real scalar fh
 	real matrix X,Xs
 	st_view(X=.,.,.)
-	fh=fopen("`all_sd'","a")
+	fh=fopen(all_sd, "a")
 	Xs=X[.,(2::cols(X))]
 	fputmatrix(fh,Xs)
 	fclose(fh)
 }
-	
-void saveall()
+
+void saveall(string scalar all_sd)
 {
 	real vector levellist
 	string scalar fname, kname
@@ -346,7 +346,7 @@ void saveall()
 	fname
 	stata("clear")
 	stata(fname)
-	addmat()
+	addmat(all_sd)
 
 	levellist=(50,10,100,2,4,6,8,20,30,40,60,70,80,90,120,140,160,180,200,250,300,400,500)
 	for(k=4;k<=8;k=k+4){
@@ -359,18 +359,18 @@ void saveall()
 			fname
 			stata("clear")
 			stata(fname)
-			addmat()
+			addmat(all_sd)
 			fname="c:/dropbox/mystuff/heavymean/2020/swind/lamth"+kname+strofreal(level)+".txt"
 			fname="import delimited "+fname+", delim("+char(34)+" "+char(34)+", collapse)"
 			fname
 			stata("clear")
 			stata(fname)
-			addmat()
+			addmat(all_sd)
 		}
 	}
 }
 
-void loadall()
+void loadall(string scalar all_sd)
 {
 	real scalar i,level,fh,lx,j
 	real vector levellist
@@ -379,7 +379,7 @@ void loadall()
 	real matrix mdat
 	levellist=(50,10,100,2,4,6,8,20,30,40,60,70,80,90,120,140,160,180,200,250,300,400,500,1000)
 	tsts=tst(2,length(levellist))
-	fh=fopen("`all_sd'", "r")
+	fh=fopen(all_sd, "r")
 	GQxw=fgetmatrix(fh)
 	for(j=1;j<=2;j++){
 		for(i=1;i<=length(levellist)-1;i++){
@@ -399,11 +399,11 @@ void loadall()
 	}
 	fclose(fh)
 }
-		
+	
 
 end
 
 
 
-mata loadall()
+mata loadall("`all_sd'")
 

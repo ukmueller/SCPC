@@ -4,6 +4,10 @@ program robttest, eclass sortpreserve
 	syntax [if] [in], ///
 		[ K(int -1) ]
 
+	// Locate "all.sd" file
+	findfile "all.sd"
+	local all_sd `r(fn)'
+	
 	// Create rtt tempvar
 	tempvar rtt_sel
 	forvalues i = 1/`=colsof(e(b))' {
@@ -47,9 +51,9 @@ program robttest, eclass sortpreserve
 		matrix coef = e(N)*rtt_Bread[`i', 1...]
 		qui matrix score `w' = coef if `rtt_sel' == 1
 		qui replace `w' = `w' + b[1,`i'] if `rtt_sel' == 1
-		mata setCIfromS(`k', "`w'", "`rtt_sel'")
+		mata setCIfromS(`k', "`w'", "`rtt_sel'", "`all_sd'")
 		matrix robCis[`i', 1] = robCI[1, 1..2]
-		mata setpvalfromS(`k', "`w'", "`rtt_sel'")
+		mata setpvalfromS(`k', "`w'", "`rtt_sel'", "`all_sd'")
 		matrix robpvals[1,`i'] = robpval[1, 1]
 		matrix Wextremes = Wextremes'
 		matrix WR[`i', 1] = Wextremes[1, 1...]
