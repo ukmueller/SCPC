@@ -1,5 +1,5 @@
 // Set working directory
-if "`c(username)'" == "alvaro" cd ~/Repos/robttest
+if "`c(username)'" == "alvaro" cd ~/Repos/robttest/src
 else cd "c:/dropbox/mystuff/heavymean/2020/MATA"
 
 clear all
