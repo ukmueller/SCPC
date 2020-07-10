@@ -6,6 +6,9 @@ set matalnum on
 
 mata:
 
+findfile "all.sd"
+local all_sd "`r(fn)'"
+
 struct tst{
 	real vector lam_stage1, lam
 	real matrix	thlist0_stage1, thlist0
@@ -326,7 +329,7 @@ void addmat()
 	real scalar fh
 	real matrix X,Xs
 	st_view(X=.,.,.)
-	fh=fopen("all.sd","a")
+	fh=fopen(`all_sd',"a")
 	Xs=X[.,(2::cols(X))]
 	fputmatrix(fh,Xs)
 	fclose(fh)
@@ -376,7 +379,7 @@ void loadall()
 	real matrix mdat
 	levellist=(50,10,100,2,4,6,8,20,30,40,60,70,80,90,120,140,160,180,200,250,300,400,500,1000)
 	tsts=tst(2,length(levellist))
-	fh=fopen("all.sd","r")
+	fh=fopen(`all_sd', "r")
 	GQxw=fgetmatrix(fh)
 	for(j=1;j<=2;j++){
 		for(i=1;i<=length(levellist)-1;i++){
