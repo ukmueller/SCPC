@@ -7,6 +7,16 @@ This new test controls size more succesfully in small samples compared to existi
 Analytical results in the canonical inference for the mean problem demonstrate that the new test provides a refinement over the full sample t-test under more than two but less than three moments, while the bootstrapped t-test does not.
 
 
+# Install
+
+`robttest` is not currently available from SSC. To install directly from this repository, you can copy and run the following lines in Stata:
+```stata
+// Remove program if it existed previously
+cap ado uninstall
+// Install most up-to-date version
+net install robttest, from("https://raw.githubusercontent.com/acarril/robttest/master/src")
+```
+
 # References
 
 Müller, Ulrich K (2020). "A More Robust t-Test". Working Paper. https://www.princeton.edu/~umueller/heavymean.pdf.
