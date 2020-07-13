@@ -4,6 +4,6 @@ d Princeton University
 d umueller@princeton.edu
 d https://github.com/acarril/robttest
 
-d 'robttest': Robust t-test alternative for small samples.
+d 'robttest': Robust t-test for potentially heavy-tailed observations.
 
 p robttest

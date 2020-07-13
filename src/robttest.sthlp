@@ -3,7 +3,7 @@
 {title:Title}
 
 {pstd}
-{hi:robttest} {hline 2} Robust t-test alternative for small samples
+{hi:robttest} {hline 2} Robust t-test for potentially heavy-tailed observations
 
 
 {title:Syntax}
