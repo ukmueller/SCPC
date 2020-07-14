@@ -3,7 +3,7 @@
 {title:Title}
 
 {pstd}
-{hi:robttest} {hline 2} Robust t-test for potentially heavy-tailed observations
+{hi:robttest} {hline 2} Robust t-test for potentially heavy-tailed observations/scores
 
 
 {title:Syntax}
@@ -34,7 +34,7 @@ specifying {it:modelspec} as "{cmd:.}".
 {synopthdr}
 {synoptline}
 {synopt :{opt k(#)}}override default value for {it:k}th order statistic{p_end}
-{synopt :{opt v:erbose}}display the 2{it:k} extreme values{p_end}
+{synopt :{opt v:erbose}}display the 2{it:k} extreme terms, in multiples of standard deviation of middle {it:n}-2{it:k} terms{p_end}
 {synoptline}
 {p2colreset}{...}
 
@@ -64,7 +64,7 @@ as long as these are used with the standard error option {it:robust} or {it:clus
 {opt k(#)} overrides default value for {it:k}th order statistic; see {help robttest##mainpaper:Müller (2020)} for details.
 
 {phang}
-{opt verbose} displays the 2{it:k} extreme values.
+{opt verbose} displays the 2{it:k} extreme terms, in multiples of standard deviation of middle {it:n}-2{it:k} terms.
 
 
 {marker examples}{...}
@@ -91,7 +91,7 @@ as long as these are used with the standard error option {it:robust} or {it:clus
 
 {p2col 5 15 19 2: Matrices}{p_end}
 {synopt:{cmd:e(rob_pvals)}}robust p-values{p_end}
-{synopt:{cmd:e(rob_CIs)}}robust convidence intervals{p_end}
+{synopt:{cmd:e(rob_CIs)}}robust confidence intervals{p_end}
 {synopt:{cmd:e(rob_WL)}}{it:k} extreme values (left tail){p_end}
 {synopt:{cmd:e(rob_WR)}}{it:k} extreme values (right tail){p_end}
 {p2colreset}{...}
