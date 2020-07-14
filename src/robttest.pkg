@@ -9,10 +9,10 @@ d Müller (2020), which combines extreme value theory for the smallest and
 d largest observations with a normal approximation for the average of the 
 d remaining observations to construct a more robust alternative to the t-test.
 d This new test controls size more succesfully in small samples compared to 
-d existing methods. Analytical results in the canonical inference for the mean 
-d problem demonstrate that the new test provides a refinement over the full
-d sample t-test under more than two but less than three moments, while the
-d bootstrapped t-test does not.
+d existing methods. It is implemented as a postestimation command that can be 
+d used after the Stata commands "regress", "ivregress", "areg" , "logit" or
+d "probit", as long as these are used with the standard error option "robust"
+d or "cluster".
 d  
 d KW: t-statistic
 d KW: extreme value distribution
