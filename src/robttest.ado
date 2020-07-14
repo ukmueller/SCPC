@@ -48,7 +48,7 @@ program robttest, eclass sortpreserve
 	local i = 1
 	while "``i''" != "" {
 		tempvar w
-		matrix coef = e(N)*rtt_Bread[`i', 1...]
+		matrix coef = r(sum)*rtt_Bread[`i', 1...]
 		qui matrix score `w' = coef if `rtt_sel' == 1
 		qui replace `w' = `w' + b[1,`i'] if `rtt_sel' == 1
 		mata setCIfromS(`k', "`w'", "`rtt_sel'", "`all_sd'")
