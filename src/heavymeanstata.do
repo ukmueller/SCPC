@@ -31,7 +31,7 @@ program robttest, eclass
 	local i = 1
 	while "``i''" != "" {
 		capture drop w
-		matrix coef=e(N)*rtt_Bread[`i',1...]
+		matrix coef=r(sum)*rtt_Bread[`i',1...]
 		quietly matrix score w=coef if rtt_sel==1
 		quietly replace w=w+b[1,`i'] if rtt_sel==1		
 //qui sum w if rtt_sel==1
