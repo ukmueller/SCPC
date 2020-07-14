@@ -13,9 +13,6 @@ program robttest, eclass sortpreserve
 	
 	// Create rtt tempvar
 	tempvar rtt_sel
-	forvalues i = 1/`=colsof(e(b))' {
-		tempvar rtt_score`i'
-	}
 		
 //	capture noisily setscores
 //	if _rc!=0 exit
