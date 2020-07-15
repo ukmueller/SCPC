@@ -55,8 +55,7 @@ This new test controls size more succesfully in small samples compared to
 existing methods.
 It is implemented as a postestimation command that can be used after the Stata commands {manhelp regress R:regress}, {manhelp ivregress R:ivregress}, {manhelp areg R:areg}, {manhelp logit R:logit} or {manhelp probit R:probit},
 as long as these are used with the standard error option {it:robust} or {it:cluster} (see {manhelp vce_option R:vce option}).
-P-values take values on the grid 0.002,0.004,0.006,0.008,0.01,0.02,0.030,0.04,0.05,0.06,0.07,0.08,0.09,0.10,0.12,0.14,0.16,0.18,0.2,0.250,0.3,0.4,0.5,1.0.
-The reported p-value is the largest value on this grid for which all tests of level as small or smaller reject. Thus, the reported p-value is to be interpreted as an upper bound, that is if it was computed with a finer grid of levels, it would be smaller than the one that is reported, but not as small as the next smallest value in this grid. In particular, a value of 0.002 means that tests of all considered levels reject, and a p-value of 1.0 means that the test of level 0.5 does not reject.
+P-values take values on the grid 0.002, 0.004, 0.006, 0.008, 0.01, 0.02, 0.030, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.12, 0.14, 0.16, 0.18, 0.2, 0.25, 0.3, 0.4, 0.5, 1.0. The reported p-value is the largest value on this grid so that all tests of that level and smaller reject. Thus, the reported p-value is to be interpreted as an upper bound, that is if it was computed with a finer grid of levels, it would be smaller than the one that is reported, but not as small as the next smallest value in this grid. In particular, a value of 0.002 means that tests of all considered levels reject, and a p-value of 1.0 means that the test of level 0.5 does not reject.
 
 
 {marker options}{...}
