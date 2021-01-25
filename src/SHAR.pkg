@@ -1,0 +1,28 @@
+v 1.0.0
+d 'SHAR': Spatial Correlation Robust Inference.
+d
+d This Stata package implements the method described in Müller and Watson (2021)
+d (http://www.princeton.edu/~umueller/SHAR.pdf) for the construction of confidence 
+d intervals that account for many forms of spatial correlation.
+d It is implemented as a postestimation command that can be used after the 
+d STATA commands "regress", "ivregress", "areg" , "logit" or "probit" as long 
+d as these are used with the standard error option "robust" or "cluster". If 
+d "cluster" is chosen, then the method assumes that all observations in a cluster
+d is at the same spatial location, and corrects for the spatial correlation 
+d between clusters. 
+d  
+d KW: spatial correlation
+d KW: HAC
+d KW: t-statistic
+d 
+d Requires: Stata version 11 
+d
+d Distribution Date: 20210201
+d
+d Author: Ulrich K. Müller
+d
+d Support: email umueller@princeton.edu
+d
+F SHAR.ado
+F SHAR.sthlp
+F SHARmata.do

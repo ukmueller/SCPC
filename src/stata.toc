@@ -2,8 +2,8 @@ v 1.0.0
 d Ulrich K. Müller
 d Princeton University
 d umueller@princeton.edu
-d https://github.com/acarril/robttest
+d https://github.com/ukmueller/SHAR
 
-d 'robttest': Robust t-test for potentially heavy-tailed observations.
+d 'SHAR': Spatial Correlation Robust Inference.
 
-p robttest
+p SHAR

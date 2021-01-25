@@ -3,7 +3,7 @@
 {title:Title}
 
 {pstd}
-{hi:robttest} {hline 2} Robust t-test for potentially heavy-tailed observations/scores
+{hi:robttest} {hline 2} Spatial Correlation Robust Inference.
 
 
 {title:Syntax}
