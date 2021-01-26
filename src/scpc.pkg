@@ -3,7 +3,7 @@ d 'scpc': Spatial Correlation Robust Inference.
 d
 d This Stata package implements the Spatial Correlation Principle Components (SCPC)
 d method described in Müller and Watson (2021)
-d (http://www.princeton.edu/~umueller/SCPC.pdf) for the construction of confidence 
+d (http://www.princeton.edu/~umueller/SHAR.pdf) for the construction of confidence 
 d intervals that account for many forms of spatial correlation.
 d It is implemented as a postestimation command that can be used after the 
 d STATA commands "regress", "ivregress", "areg" , "logit" or "probit" as long 

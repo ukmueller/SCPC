@@ -509,7 +509,6 @@ program scpc, eclass sortpreserve
 	scpc_setscores, scpc_sel(`scpc_sel')
 	qui sum `scpc_sel', detail
 	local neff r(sum)
-	disp as text "SCPC using " `neff' " observations / clusters" 
 	matrix b=e(b)
 	local na : colnames e(V)
 	matrix robCis =e(b)'*(1,1,1,1,1,1)
