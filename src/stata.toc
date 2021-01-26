@@ -2,8 +2,8 @@ v 1.0.0
 d Ulrich K. Müller
 d Princeton University
 d umueller@princeton.edu
-d https://github.com/ukmueller/SHAR
+d https://github.com/ukmueller/SCPC
 
-d 'SHAR': Spatial Correlation Robust Inference.
+d 'scpc': Spatial Correlation Robust Inference.
 
-p SHAR
+p scpc

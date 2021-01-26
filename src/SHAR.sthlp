@@ -3,13 +3,13 @@
 {title:Title}
 
 {pstd}
-{hi:robttest} {hline 2} Spatial Correlation Robust Inference.
+{hi:scpc} {hline 2} Spatial Correlation Robust Inference via SCPC.
 
 
 {title:Syntax}
 
 {p 8 16 2}
-{cmd:robttest} {it:modelspec} [{cmd:,} {it:options}]
+{cmd:scpc} {it:modelspec} [{cmd:,} {it:options}]
 {p_end}
 
 {phang}
@@ -33,8 +33,7 @@ specifying {it:modelspec} as "{cmd:.}".
 {synoptset 11}{...}
 {synopthdr}
 {synoptline}
-{synopt :{opt k(#)}}override default value for {it:k}th order statistic{p_end}
-{synopt :{opt v:erbose}}display the 2{it:k} extreme terms, in multiples of standard deviation of sum of middle {it:n}-2{it:k} terms{p_end}
+{synopt :{opt avc(#)}}overrides default value of 0.05 for maximal average pairwise correlation {p_end}
 {synoptline}
 {p2colreset}{...}
 
@@ -43,79 +42,44 @@ specifying {it:modelspec} as "{cmd:.}".
 {title:Description}
 
 {pstd}
-Standard inference about a scalar parameter estimated via GMM amounts to 
-applying a t-test to a particular set of observations. If the number of 
-observations is not very large, then moderately heavy tails can lead to poor
-behaviour of the t-test.
-This package implements the method described in 
-{help robttest##mainpaper:Müller (2020)}, which combines extreme value theory for the smallest and
-largest observations with a normal approximation for the average of the 
-remaining observations to construct a more robust alternative to the t-test.
-This new test controls size more succesfully in small samples compared to 
-existing methods.
+This Stata package implements the Spatial Correlation Principal Components (SCPC) method described in {help SCPC##mainpaper:Müller and Watson (2021)} for the construction of confidence intervals that account for many forms of spatial correlation. 
+The scpc command expects the locations of the observations to be stored in the variables s_*. For instance,
+if s_1 and s_2 are the only variables whose name begins with "s_", then the method uses 2-dimensional locations.
 It is implemented as a postestimation command that can be used after the Stata commands {manhelp regress R:regress}, {manhelp ivregress R:ivregress}, {manhelp areg R:areg}, {manhelp logit R:logit} or {manhelp probit R:probit},
-as long as these are used with the standard error option {it:robust} or {it:cluster} (see {manhelp vce_option R:vce option}).
-P-values take values on the grid 0.002, 0.004, 0.006, 0.008, 0.01, 0.02, 0.030, 0.04, 
-0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.12, 0.14, 0.16, 0.18, 0.2, 0.25, 
-0.3, 0.4, 0.5, 1.0. The reported p-value is the largest value on this grid 
-so that all tests of that level and smaller reject. Thus, the reported p-value 
-is to be interpreted as an upper bound, that is if it was computed with a finer grid 
-of levels, it would be smaller than the one that is reported, but not as small as 
-the next smallest value in the grid above. In particular, a value of 0.002 means
-that tests of all considered levels reject, and a p-value of 1.0 means that 
-the test of level 0.5 does not reject.
-
+as long as these are used with the standard error option {it:robust} or {it:cluster} (see {manhelp vce_option R:vce option}). If the estimation uses the {it:cluster} option, then scpc corrects for spatial correlations between clusters, assuming that all observations within a cluster share the same location.
+ 
 
 {marker options}{...}
 {title:Options}
 
 {phang}
-{opt k(#)} overrides default value for {it:k}th order statistic; see {help robttest##mainpaper:Müller (2020)} for details.
+{opt k(#)} overrides default value of 0.05 for maximal average pairwise correlation; see {help scpc##mainpaper:Müller and Watson (2021)} for details.
 
-{phang}
-{opt verbose} displays the 2{it:k} extreme terms, in multiples of standard deviation of sum of middle {it:n}-2{it:k} terms.
 
 
 {marker examples}{...}
 {title:Examples}
 
 {phang}{cmd:. sysuse auto}{p_end}
+{phang}{cmd:. gen s_1=rnormal(0,1)}{p_end}
+{phang}{cmd:. gen s_2=rnormal(0,1)}{p_end}
 {phang}{cmd:. regress mpg weight length, robust}{p_end}
 {phang}{cmd:. estimates store A}{p_end}
-{phang}{cmd:. robttest}{p_end}
-{phang}{cmd:. robttest .}{space 6}(equivalent to above command){p_end}
-{phang}{cmd:. robttest A}{space 6}(equivalent to above command){p_end}
-{phang}{cmd:. robttest, k(6) verbose}{p_end}
+{phang}{cmd:. scpc}{p_end}
+{phang}{cmd:. scpc .}{space 6}(equivalent to above command){p_end}
+{phang}{cmd:. scpc A}{space 6}(equivalent to above command){p_end}
+{phang}{cmd:. scpc, avc(0.01)}{p_end}
 
 
 {marker results}{...}
 {title:Stored results}
 
 {pstd}
-{cmd:robttest} stores the following in {cmd:e()}:
-
-{synoptset 20 tabbed}{...}
-{p2col 5 20 24 2: Scalars}{p_end}
-{synopt:{cmd:e(k)}}value of {it:k} used in computations{p_end}
-
-{p2col 5 15 19 2: Matrices}{p_end}
-{synopt:{cmd:e(rob_pvals)}}robust p-values{p_end}
-{synopt:{cmd:e(rob_CIs)}}robust confidence intervals{p_end}
-{synopt:{cmd:e(rob_WL)}}{it:k} extreme values (left tail){p_end}
-{synopt:{cmd:e(rob_WR)}}{it:k} extreme values (right tail){p_end}
-{p2colreset}{...}
-
-{pstd}
-Additionally, {cmd:robttest} preserves all macros and scalars of the estimated model in memory.
+Additionally, {cmd:scpc} preserves all macros and scalars of the estimated model in memory.
 
 
 {marker authors}{...}
-{title:Authors}
-
-{pstd}
-Álvaro Carril (maintainer){break}
-Princeton University{break}
-acarril@princeton.edu
+{title:Author}
 
 {pstd}
 Ulrich K. Müller{break}
@@ -127,13 +91,12 @@ Princeton University{break}
 
 {pstd}
 This software is provided "as is", without warranty of any kind.
-If you have suggestions or want to report problems, please create a new issue in the {browse "https://github.com/acarril/robttest/issues":project repository} or contact the project maintainer.
-All remaining errors are our own.
+If you have suggestions or want to report problems, please create a new issue in the {browse "https://github.com/ukmueller/SCPC/issues":project repository} or contact the project maintainer.
 
 
 {marker references}{...}
 {title:References}
 
 {marker mainpaper}{...}
-{phang}Müller, Ulrich K. "A More Robust t-Test" Working Paper. July 2020. {browse "https://www.princeton.edu/~umueller/heavymean.pdf"}.
+{phang}Müller, Ulrich K. and Mark W. Watson "Spatial Correlation Robust Inference" Working Paper. February 2021. {browse "https://www.princeton.edu/~umueller/SHAR.pdf"}.
 
