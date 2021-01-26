@@ -1,5 +1,5 @@
 v 1.0.0
-d 'SCPC': Spatial Correlation Robust Inference.
+d 'scpc': Spatial Correlation Robust Inference.
 d
 d This Stata package implements the Spatial Correlation Principle Components (SCPC)
 d method described in Müller and Watson (2021)
@@ -24,5 +24,5 @@ d Author: Ulrich K. Müller
 d
 d Support: email umueller@princeton.edu
 d
-F SCPC.ado
-F SCPC.sthlp
+F scpc.ado
+F scpc.sthlp

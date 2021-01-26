@@ -42,7 +42,7 @@ specifying {it:modelspec} as "{cmd:.}".
 {title:Description}
 
 {pstd}
-This Stata package implements the Spatial Correlation Principal Components (SCPC) method described in {help SCPC##mainpaper:Müller and Watson (2021)} for the construction of confidence intervals that account for many forms of spatial correlation. 
+This Stata package implements the Spatial Correlation Principal Components (SCPC) method described in {help scpc##mainpaper:Müller and Watson (2021)} for the construction of confidence intervals that account for many forms of spatial correlation. 
 The scpc command expects the locations of the observations to be stored in the variables s_*. For instance,
 if s_1 and s_2 are the only variables whose name begins with "s_", then the method uses 2-dimensional locations.
 It is implemented as a postestimation command that can be used after the Stata commands {manhelp regress R:regress}, {manhelp ivregress R:ivregress}, {manhelp areg R:areg}, {manhelp logit R:logit} or {manhelp probit R:probit},
