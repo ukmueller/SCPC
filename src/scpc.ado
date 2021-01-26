@@ -511,7 +511,7 @@ program scpc, eclass sortpreserve
 	local neff r(sum)
 	matrix b=e(b)
 	local na : colnames e(V)
-	matrix robCis =e(b)'*(1,1,1,1,1,1)
+	matrix scpctab =e(b)'*(1,1,1,1,1,1)
 	tokenize `na'
 	mata setOmsWfin(`avc',"`scpc_sel'")
 	
@@ -524,18 +524,18 @@ program scpc, eclass sortpreserve
 		qui replace `w' = `w' + b[1,`i'] if `scpc_sel' == 1		
 		mata set_scpcstats("`w'", "`scpc_sel'")
 //matlist scpcstats 		
-		matrix robCis[`i', 1] = scpcstats[1, 1..6]
+		matrix scpctab[`i', 1] = scpcstats[1, 1..6]
 //		mata setpvalfromS(`k', "`w'", "`scpc_sel'", "`all_sd'")
 		local ++i
 	}
-//matlist robCis	
-	matrix colnames robCis = "Coef" "Std_Err" "  t  " "P>|t|" "95% Conf" "Interval"
-	local n = rowsof(robCis)
+//matlist scpctab	
+	matrix colnames scpctab = "Coef" "Std_Err" "  t  " "P>|t|" "95% Conf" "Interval"
+	local n = rowsof(scpctab)
 	local ands = `n'*"&"
 	local rs &-`ands'
-	matlist robCis, border(all) title("Results from SCPC, maximal average pairwise correlation = `avc'") cspec(o2& %12s | %9.0g o2 & %9.0g o2 &o1 %5.2f o1& o2 %5.3f o1 & o2 %9.0g & o1 %9.0g o2&) rspec(`rs')
+	matlist scpctab, border(all) title("Results from SCPC, maximal average pairwise correlation = `avc'") cspec(o2& %12s | %9.0g o2 & %9.0g o2 &o1 %5.2f o1& o2 %5.3f o1 & o2 %9.0g & o1 %9.0g o2&) rspec(`rs')
  	// Return results
-	ereturn matrix scpcstats = robCis
+	ereturn matrix scpcstats = scpctab
 	cap drop scpc_score*
 end
 
