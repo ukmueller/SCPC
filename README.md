@@ -15,4 +15,4 @@ net install scpc, from("https://raw.githubusercontent.com/ukmueller/SCPC/master/
 
 # References
 
-Müller, Ulrich K and Mark W. Watson (2021). "Spatial Correlation Robust Inference". Working Paper. https://www.princeton.edu/~umueller/SCPC.pdf.
+Müller, Ulrich K and Mark W. Watson (2021). "Spatial Correlation Robust Inference". Working Paper. https://www.princeton.edu/~umueller/SHAR.pdf.
