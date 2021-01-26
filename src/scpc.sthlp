@@ -49,14 +49,7 @@ then scpc corrects for spatial correlations between clusters, assuming that all 
 {phang}{cmd:. regress mpg weight length, robust}{p_end}
 {phang}{cmd:. scpc}{p_end}
 {phang}{cmd:. scpc ,avc(0.05)}{space 6}(equivalent to above command){p_end}
-{phang}{cmd:. scpc , avc(0.01)}{p_end}
-
-
-{marker results}{...}
-{title:Stored results}
-
-{pstd}
-Additionally, {cmd:scpc} preserves all macros and scalars of the estimated model in memory.
+{phang}{cmd:. scpc ,avc(0.01)}{p_end}
 
 
 {marker authors}{...}

@@ -138,7 +138,7 @@ void setfinalW(struct mats vector Oms, real matrix W, real scalar cv)
 		cv0=invttail(q,0.025)/sqrt(q)   
 		cv1=cv0
 		do{
-			cv1=cv1+1
+			cv1=cv1+.1
 		} while(maxrp(Oms,q,cv1)>0.05)
 		do{
 			cv=0.5*(cv1+cv0)
@@ -148,7 +148,7 @@ void setfinalW(struct mats vector Oms, real matrix W, real scalar cv)
 			else{
 				cv1=cv
 			}
-		}while(cv1-cv0>0.0001)		
+		}while(cv1-cv0>0.001)		
 		cvs[q]=cv1
 		lengths[q]=cv1*gamma(.5*(q+1))/(gamma(.5*q))
 	} 
@@ -362,12 +362,11 @@ void setOmsWfin(real scalar avc0, string scalar sel)
 		stata("disp as text"+char(34)+"no locations found in variables s_1, s_2 etc; aborting"+char(34))
 		exit(999)
 	}		
-	stata("disp as text"+char(34)+"SCPC using "+strofreal(rows(s), "%6.0f")+" observations / clusters and "+strofreal(cols(s), "%3.0f")+"-dimensional locations in s_*"+char(34))
 	setGQxw()
-	qmax=20
+	qmax=min((rows(s)-1,30))
 	cgridfac=1.2			// factor in c-grid for size control
 	n=rows(s)
-	if(n<100){
+	if(n<1000){
 // code for small n
 		permfin=(1::n)
 		distmat=getdistmat(s)
@@ -377,8 +376,8 @@ void setOmsWfin(real scalar avc0, string scalar sel)
 		}
 	else{
 		capN=20			// number of random sets of locations (of size m) used to approximate eigenvectors
-		capM=1000		// number of location pairs used to approximate Om(c) (in production: capM=1000000 or so)
-		m=39			// size of set of locations for which eigenvector is computed, and then Nystrom extended from m to n (in production: m=1000 or so)
+		capM=1000000		// number of location pairs used to approximate Om(c) (in production: capM=1000000 or so)
+		m=1000			// size of set of locations for which eigenvector is computed, and then Nystrom extended from m to n (in production: m=1000 or so)
 						// note: m cannot be larger than n
 
 //		stata("display c(current_time)")
@@ -393,6 +392,9 @@ void setOmsWfin(real scalar avc0, string scalar sel)
 //		stata("display c(current_time)")
 	}
 	setfinalW(Oms,W,cv)
+	stata("disp as text"+char(34)+"SCPC using "+strofreal(rows(s), "%6.0f")+" observations / clusters and "+strofreal(cols(s), "%3.0f")+"-dimensional locations in s_*"+char(34))
+	stata("disp as text"+char(34)+"resulting optimal q is "+strofreal(cols(W)-1, "%3.0f")+char(34))
+	
 	Wfin=W
 	Omsfin=Oms
 	cvfin=cv
@@ -501,8 +503,8 @@ program scpc, eclass sortpreserve
 	if `avc'==-1 {
 		local avc 0.05	// set default
 	}
-	if `avc'<0.0001 | `avc'>0.99 {
-		disp as text "average correlation must be between 0.0001 and 0.99; aborting"
+	if `avc'<0.001 | `avc'>0.99 {
+		disp as text "average correlation must be between 0.001 and 0.99; aborting"
 		exit(999)
 	}
 	tempvar scpc_sel
@@ -533,7 +535,7 @@ program scpc, eclass sortpreserve
 	local n = rowsof(scpctab)
 	local ands = `n'*"&"
 	local rs &-`ands'
-	matlist scpctab, border(all) title("Results from SCPC, maximal average pairwise correlation = `avc'") cspec(o2& %12s | %9.0g o2 & %9.0g o2 &o1 %5.2f o1& o2 %5.3f o1 & o2 %9.0g & o1 %9.0g o2&) rspec(`rs')
+	matlist scpctab, border(all) title("Results from SCPC, maximal average pairwise correlation = `avc'") cspec(o2& %12s | %9.0g o2 & %9.0g o2 &o1 %5.2f o1& o2 %6.3f o1 & o2 %9.0g & o1 %9.0g o2&) rspec(`rs')
  	// Return results
 	ereturn matrix scpcstats = scpctab
 	cap drop scpc_score*
