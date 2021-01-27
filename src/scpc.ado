@@ -438,6 +438,7 @@ void setOmsWfin(real scalar avc0, string scalar sel)
 		}
 	}
 	while(1){
+		qmax=min((n-1,qmax))
 		if(n<2000){
 	// code for small n
 			permfin=(1::n)
@@ -465,7 +466,7 @@ void setOmsWfin(real scalar avc0, string scalar sel)
 	//		stata("display c(current_time)")
 		}
 		setfinalW(Oms,W,cv)
-		if(cols(W)-1<qmax) break
+		if(cols(W)-1<qmax | qmax==n-1) break
 		qmax=round(qmax+qmax/2,1)
 	}
 	stata("disp as text"+char(34)+"SCPC using "+strofreal(rows(s), "%6.0f")+" observations / clusters and "+strofreal(cols(s), "%3.0f")+"-dimensional locations in s_*"+char(34))
