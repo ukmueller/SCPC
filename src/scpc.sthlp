@@ -32,7 +32,7 @@ as long as these are used with the standard error option {it:robust} or {it:clus
 then {it:scpc} corrects for spatial correlations between clusters, assuming that all observations within a cluster share the same location.
 By default, {it:scpc} conducts spatially robust inference under the assumption that the largest average pairwise correlation between the observations / clusters is no larger than 0.05. This default can be overridden by the
 {it:avc} option. Note that computation times increase for smaller values of {it:avc}.
-The underlying algorithm can also handle large datasets; internally, a different algorithm is used when the number of observations / clusters exceeds 2000.
+The underlying algorithm can also handle large datasets; internally, a different algorithm is used when the number of observations / clusters exceeds 2000. Computing time is appproximately linear in the number of observations, and is roughtly one minute for 5000 observations.
  
 
 {marker options}{...}
@@ -53,6 +53,11 @@ The underlying algorithm can also handle large datasets; internally, a different
 {phang}{cmd:. scpc}{p_end}
 {phang}{cmd:. scpc ,avc(0.05)}{space 6}(equivalent to above command){p_end}
 {phang}{cmd:. scpc ,avc(0.01)}{p_end}
+{phang}{cmd:. gen clust=round(rnormal(0,10),1)}{p_end}
+{phang}{cmd:. regress mpg weight length, cluster(clust)}{p_end}
+{phang}{cmd:. scpc}{p_end}
+
+
 
 
 {marker authors}{...}
