@@ -129,6 +129,58 @@ void setfinalW(struct mats vector Oms, real matrix W, real scalar cv)
 {
 	external real scalar qmax
 	real scalar i, cv0,cv1,q
+	real vector cvs,lengths,qvec,rps
+	real matrix kmat
+	
+	lengths=(1::qmax)
+	cvs=lengths
+	rps=(1::length(Oms))
+	for(q=1;q<=qmax;q++){
+		i=1			// compute cv1 first for Oms[1]; if that doesn't lead to size control, iterate
+		cv0=invttail(q,0.025)/sqrt(q)   
+		do{
+			cv1=cv0
+			while(1){
+				if(getrp(Oms[i].mat[1::q+1,1::q+1],cv1)>0.05){
+					cv0=cv1
+					cv1=cv1+1/sqrt(q)
+				}
+				else{
+					break
+				}
+			}
+			
+			while(cv1-cv0>0.01/sqrt(q)){
+				cv=0.5*(cv1+cv0)
+				if(getrp(Oms[i].mat[1::q+1,1::q+1],cv)>0.05){
+					cv0=cv
+					}
+				else{
+					cv1=cv
+				}
+			}
+			
+			for(i=1;i<=length(Oms);i++){
+				rps[i]=getrp(Oms[i].mat[1::q+1,1::q+1],cv1)		
+			}
+			maxindex(rps,1,qvec,kmat)			
+			i=qvec[1]				// set potential new i to grid index with largest rejection prob
+			cv0=cv1
+		}while(rps[i]>0.05)		
+		cvs[q]=cv1
+		lengths[q]=cv1*gamma(.5*(q+1))/(gamma(.5*q))
+	} 
+	minindex(lengths,1,qvec,kmat)
+	q=qvec[1]
+	cv=cvs[q]*sqrt(q)	
+	W=W[.,1::q+1]
+}
+
+void setfinalWold(struct mats vector Oms, real matrix W, real scalar cv)
+// solves for optimal q and cv from Oms, stores results in W and cv
+{
+	external real scalar qmax
+	real scalar i, cv0,cv1,q
 	real vector cvs,lengths,qvec
 	real matrix kmat
 	
@@ -138,8 +190,9 @@ void setfinalW(struct mats vector Oms, real matrix W, real scalar cv)
 		cv0=invttail(q,0.025)/sqrt(q)   
 		cv1=cv0
 		do{
-			cv1=cv1+.1
+			cv1=cv1+1/sqrt(q)
 		} while(maxrp(Oms,q,cv1)>0.05)
+		cv0=cv1-1/sqrt(q)
 		do{
 			cv=0.5*(cv1+cv0)
 			if(maxrp(Oms,q,cv)>0.05){
@@ -148,24 +201,24 @@ void setfinalW(struct mats vector Oms, real matrix W, real scalar cv)
 			else{
 				cv1=cv
 			}
-		}while(cv1-cv0>0.001)		
+		}while(cv1-cv0>0.01/sqrt(q))		
 		cvs[q]=cv1
 		lengths[q]=cv1*gamma(.5*(q+1))/(gamma(.5*q))
 	} 
 	minindex(lengths,1,qvec,kmat)
 	q=qvec[1]
-	cv=cvs[q]*sqrt(q)
+	cv=cvs[q]*sqrt(q)	
 	W=W[.,1::q+1]
 }
 
-real scalar getnc(real scalar c0)
-// computes number of c-values in grid so that largest c is at least 1000
+real scalar getnc(real scalar c0, real scalar cmax)
+// computes number of c-values in grid so that largest c is at least cmax
 {
 	external real scalar cgridfac
-	return(max((2,ceil(log(1000.0/c0)/log(cgridfac)))))
+	return(max((2,ceil(log(cmax/c0)/log(cgridfac)))))
 }
 
-struct mats vector getOms(real matrix distmat, real scalar c0, real matrix W)
+struct mats vector getOms(real matrix distmat, real scalar c0, real scalar cmax, real matrix W)
 // computes vector of qmax x qmax Om(c) matrices from distmat, c0 and W
 {
 	external real scalar cgridfac
@@ -173,7 +226,7 @@ struct mats vector getOms(real matrix distmat, real scalar c0, real matrix W)
 	real scalar i, c
 	
 	
-	Oms=mats(getnc(c0))
+	Oms=mats(getnc(c0,cmax))
 	c=c0
 	for(i=1;i<=length(Oms);i++){	
 		Oms[i].mat=cross(W,exp(-c*distmat))*W 
@@ -198,7 +251,7 @@ void setGQxw()
 
 /* 
 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-XXXXXXXXXXXXXXX now routines for n>1000 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+XXXXXXXXXXXXXXX now routines for n>2000 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  */
 
 
@@ -247,11 +300,11 @@ struct sms{
 		real matrix s
 }
 
-void LNsetWc0(real matrix s,real scalar avc,real matrix W, real scalar c0)
+void LNsetWc0(real matrix s,real scalar avc,real matrix W, real scalar c0, real scalar cmax)
 {
 // computes W and c0 when n is large
 	external real scalar m,capN
-	external real scalar qmax
+	external real scalar qmax, minavc
 	struct sms vector ms
 	real vector distvec
 	real rowvector evals
@@ -271,6 +324,7 @@ void LNsetWc0(real matrix s,real scalar avc,real matrix W, real scalar c0)
 		distvec[(i-1)*m*(m-1)/2+1::i*m*(m-1)/2]=lvech(ms[i].mat)
 	}
 	c0=getc0fromavc(distvec,avc)
+	cmax=getc0fromavc(distvec,minavc)
 	
 	Wall=J(n,capN*qmax,0)		// matrix of all eigenvectors 1,...,qmax across all capN random locations
 	for(i=1;i<=capN;i++){
@@ -312,7 +366,7 @@ real vector raninds(real scalar n,real scalar capM)
 	return(v)
 }
 
-struct mats vector LNgetOms(real matrix s, real scalar c0, real matrix W)
+struct mats vector LNgetOms(real matrix s, real scalar c0, real scalar cmax,real matrix W)
 {
 // version of getOms that is faster if n is very large using a random selection of capM pairwise distances
 	external real scalar capM, cgridfac
@@ -323,7 +377,7 @@ struct mats vector LNgetOms(real matrix s, real scalar c0, real matrix W)
 	real matrix W1,W2
 	
 	n=rows(s)
-	Oms=mats(getnc(c0))
+	Oms=mats(getnc(c0,cmax))
 	inds=raninds(n,capM)
 	dist=sqrt(rowsum((s[inds[1::capM],.]-s[inds[2::capM+1],.]):^2)) // capM distance vector of pairwise distances
 	W1=W[inds[1::capM],.]		
@@ -346,11 +400,11 @@ XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  */
 void setOmsWfin(real scalar avc0, string scalar sel)
 {
 	real matrix s
-	real scalar c0,cv,n
+	real scalar c0,cmax,cv,n
 	real matrix W,distmat
 	external real scalar random_t	
 	struct mats vector Oms
-	external real scalar qmax, capM, m, cgridfac, capN
+	external real scalar qmax, capM, m, cgridfac, capN, minavc
 
 	external struct mats vector Omsfin
 	external real matrix Wfin
@@ -358,42 +412,64 @@ void setOmsWfin(real scalar avc0, string scalar sel)
 	external real scalar cvfin
 	
 	s=st_data(.,"s_*",sel)		// expects locations in s_1, s_2, s_3... etc. Dimension d is equal to the number of s_ variables
-	if(rows(s)<5){
+	n=rows(s)
+	if(n<5){
 		stata("disp as text"+char(34)+"no locations found in variables s_1, s_2 etc; aborting"+char(34))
 		exit(999)
 	}		
 	setGQxw()
-	qmax=min((rows(s)-1,30))
+	minavc=0.00001			// minimal avc value for which size control is checked
 	cgridfac=1.2			// factor in c-grid for size control
-	n=rows(s)
-	if(n<1000){
-// code for small n
-		permfin=(1::n)
-		distmat=getdistmat(s)
-		c0=getc0fromavc(lvech(distmat),avc0)
-		W=getW(distmat,c0)
-		Oms=getOms(distmat,c0,W)
-		}
-	else{
-		capN=20			// number of random sets of locations (of size m) used to approximate eigenvectors
-		capM=1000000		// number of location pairs used to approximate Om(c) (in production: capM=1000000 or so)
-		m=1000			// size of set of locations for which eigenvector is computed, and then Nystrom extended from m to n (in production: m=1000 or so)
-						// note: m cannot be larger than n
-
-//		stata("display c(current_time)")
-		random_t=1
-		normalize_s(s)	
-		LNsetWc0(s,avc0,W,c0)
-//		"done with W and c0"
-//		stata("display c(current_time)")
-
-		Oms=LNgetOms(s,c0,W)	
-//		"done with Oms"
-//		stata("display c(current_time)")
+	
+	if(avc0>=0.05){
+		qmax=10
 	}
-	setfinalW(Oms,W,cv)
+	else{
+		if(avc0>=0.01){
+		qmax=20
+		}
+		else{
+			if(avc0>=0.005){
+				qmax=60
+			}
+			else{
+				qmax=120
+			}
+		}
+	}
+	while(1){
+		if(n<2000){
+	// code for small n
+			permfin=(1::n)
+			distmat=getdistmat(s)
+			c0=getc0fromavc(lvech(distmat),avc0)		
+			cmax=getc0fromavc(lvech(distmat),minavc)	
+			W=getW(distmat,c0)
+			Oms=getOms(distmat,c0,cmax,W)		
+			}
+		else{
+			capN=20			// number of random sets of locations (of size m) used to approximate eigenvectors
+			capM=1000000		// number of location pairs used to approximate Om(c) (in production: capM=1000000 or so)
+			m=1000			// size of set of locations for which eigenvector is computed, and then Nystrom extended from m to n (in production: m=1000 or so)
+							// note: m cannot be larger than n
+
+	//		stata("display c(current_time)")
+			random_t=1
+			normalize_s(s)	
+			LNsetWc0(s,avc0,W,c0,cmax)
+	//		"done with W and c0"
+	//		stata("display c(current_time)")
+
+			Oms=LNgetOms(s,c0,cmax,W)	
+	//		"done with Oms"
+	//		stata("display c(current_time)")
+		}
+		setfinalW(Oms,W,cv)
+		if(cols(W)-1<qmax) break
+		qmax=round(qmax+qmax/2,1)
+	}
 	stata("disp as text"+char(34)+"SCPC using "+strofreal(rows(s), "%6.0f")+" observations / clusters and "+strofreal(cols(s), "%3.0f")+"-dimensional locations in s_*"+char(34))
-	stata("disp as text"+char(34)+"resulting optimal q is "+strofreal(cols(W)-1, "%3.0f")+char(34))
+	stata("disp as text"+char(34)+"resulting optimal q="+strofreal(cols(W)-1, "%3.0f")+" and 5% two-sided critical value = "+strofreal(cv, "%6.3f")+char(34))
 	
 	Wfin=W
 	Omsfin=Oms
@@ -535,14 +611,10 @@ program scpc, eclass sortpreserve
 	local n = rowsof(scpctab)
 	local ands = `n'*"&"
 	local rs &-`ands'
-	matlist scpctab, border(all) title("Results from SCPC, maximal average pairwise correlation = `avc'") cspec(o2& %12s | %9.0g o2 & %9.0g o2 &o1 %5.2f o1& o2 %6.3f o1 & o2 %9.0g & o1 %9.0g o2&) rspec(`rs')
+	local pavc : di %5.3f `avc'
+	matlist scpctab, border(all) title("Results from SCPC, maximal average pairwise correlation = `pavc'") cspec(o2& %12s | %9.0g o2 & %9.0g o2 &o1 %5.2f o1& o2 %6.3f o1 & o2 %9.0g & o1 %9.0g o2&) rspec(`rs')
  	// Return results
 	ereturn matrix scpcstats = scpctab
 	cap drop scpc_score*
 end
-
-exit
-
-
-
 
