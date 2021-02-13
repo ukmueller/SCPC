@@ -392,6 +392,7 @@ void setOmsWfin(real scalar avc0, string scalar sel)
 		stata("disp as text"+char(34)+"no locations found in variables s_1, s_2 etc; aborting"+char(34))
 		exit(999)
 	}		
+	stata("disp as text"+char(34)+"found "+strofreal(rows(s), "%6.0f")+" observations / clusters and "+strofreal(cols(s), "%3.0f")+"-dimensional locations in s_*"+char(34))
 	setGQxw()
 	minavc=0.00001			// minimal avc value for which size control is checked
 	cgridfac=1.2			// factor in c-grid for size control
@@ -444,8 +445,7 @@ void setOmsWfin(real scalar avc0, string scalar sel)
 		if(cols(W)-1<qmax | qmax==n-1) break
 		qmax=round(qmax+qmax/2,1)
 	}
-	stata("disp as text"+char(34)+"SCPC using "+strofreal(rows(s), "%6.0f")+" observations / clusters and "+strofreal(cols(s), "%3.0f")+"-dimensional locations in s_*"+char(34))
-	stata("disp as text"+char(34)+"resulting optimal q="+strofreal(cols(W)-1, "%3.0f")+" and 5% two-sided critical value = "+strofreal(cv, "%6.3f")+char(34))
+	stata("disp as text"+char(34)+"SCPC optimal q = "+strofreal(cols(W)-1, "%3.0f")+" for maximal average pairwise correlation = "+strofreal(avc0, "%5.3f")+`pavc'" resulting in 5% two-sided critical value = "+strofreal(cv, "%6.3f")+char(34))
 	
 	Wfin=W
 	Omsfin=Oms
@@ -490,14 +490,6 @@ void set_scpccvs()
 	st_matrix("scpc_cvs", cvs)	
 }
 
-void cvfromSTATA(real scalar level)
-{
-	external struct mats vector Omsfin
-	external real matrix Wfin
-	real scalar cv
-	cv=getcv(Omsfin,cols(Wfin)-1,1-level)
-	stata("disp as text"+char(34)+"Two-sided SCPC "+strofreal(level*100, "%4.1f")+"%-level CI u critical value: "+strofreal(cv, "%5.3f")+char(34))
-}
 end
 
 capture program drop scpc_setscores
@@ -613,15 +605,15 @@ program scpc, eclass sortpreserve
 	local ands = `n'*"&"
 	local rs &-`ands'
 	local pavc : di %5.3f `avc'
-	matlist scpctab, border(all) title("Results from SCPC, maximal average pairwise correlation = `pavc'") cspec(o2& %12s | %9.0g o2 & %9.0g o2 &o1 %5.2f o1& o2 %6.3f o1 & o2 %9.0g & o1 %9.0g o2&) rspec(`rs')
+	matlist scpctab, border(all) title("Results using SCPC") cspec(o2& %12s | %9.0g o2 & %9.0g o2 &o1 %5.2f o1& o2 %6.3f o1 & o2 %9.0g & o1 %9.0g o2&) rspec(`rs')
 	if("`cvs'"=="cvs"){
 		mata set_scpccvs()
 		matrix rownames scpc_cvs ="Two-Sided" "One-Sided"
 		matrix colnames scpc_cvs ="32%" "10%" "5%" "1%" 
-		matlist scpc_cvs, border(all) title("Critical values of SCPC t-test")  cspec(o2& %12s | %6.4g o2 & %6.4g o2 & %6.4g o2 & %6.4g o2 &) rspec(&-&&)
+		matlist scpc_cvs, border(all) title("Critical values of SCPC t-test")  cspec(o2& %12s | %6.3f o2 & %6.3f o2 & %6.3f o2 & %6.3f o2 &) rspec(&-&&)
+		ereturn matrix scpcscvs = scpc_cvs
 	}
  	// Return results
 	ereturn matrix scpcstats = scpctab
-	ereturn matrix scpcscvs = scpc_cvs
 	cap drop scpc_score*
 end
