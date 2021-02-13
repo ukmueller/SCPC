@@ -124,90 +124,65 @@ real scalar maxrp(struct mats vector Oms, real scalar q, real scalar cv)
 	return(val)
 }
 
+real scalar getcv(struct mats vector Oms, real scalar q, real scalar level)
+// computes (two-sided) critical value from q and Oms of given level
+{
+	real scalar i,cv,cv0,cv1
+	real vector qvec,rps
+	real matrix kmat
+	
+	rps=(1::length(Oms))
+	i=1			// compute cv1 first for Oms[1]; if that doesn't lead to size control, iterate
+	cv0=invttail(q,level/2)/sqrt(q)   
+	do{
+		cv1=cv0
+		while(1){
+			if(getrp(Oms[i].mat[1::q+1,1::q+1],cv1)>level){
+				cv0=cv1
+				cv1=cv1+1/sqrt(q)
+			}
+			else{
+				break
+			}
+		}
+		
+		while(cv1-cv0>0.01/sqrt(q)){
+			cv=0.5*(cv1+cv0)
+			if(getrp(Oms[i].mat[1::q+1,1::q+1],cv)>level){
+				cv0=cv
+				}
+			else{
+				cv1=cv
+			}
+		}
+		
+		for(i=1;i<=length(Oms);i++){
+			rps[i]=getrp(Oms[i].mat[1::q+1,1::q+1],cv1)		
+		}
+		maxindex(rps,1,qvec,kmat)			
+		i=qvec[1]				// set potential new i to grid index with largest rejection prob
+		cv0=cv1
+	}while(rps[i]>level)
+	return(cv1*sqrt(q))
+}
+
 void setfinalW(struct mats vector Oms, real matrix W, real scalar cv)
 // solves for optimal q and cv from Oms, stores results in W and cv
 {
 	external real scalar qmax
-	real scalar i, cv0,cv1,q
-	real vector cvs,lengths,qvec,rps
-	real matrix kmat
-	
-	lengths=(1::qmax)
-	cvs=lengths
-	rps=(1::length(Oms))
-	for(q=1;q<=qmax;q++){
-		i=1			// compute cv1 first for Oms[1]; if that doesn't lead to size control, iterate
-		cv0=invttail(q,0.025)/sqrt(q)   
-		do{
-			cv1=cv0
-			while(1){
-				if(getrp(Oms[i].mat[1::q+1,1::q+1],cv1)>0.05){
-					cv0=cv1
-					cv1=cv1+1/sqrt(q)
-				}
-				else{
-					break
-				}
-			}
-			
-			while(cv1-cv0>0.01/sqrt(q)){
-				cv=0.5*(cv1+cv0)
-				if(getrp(Oms[i].mat[1::q+1,1::q+1],cv)>0.05){
-					cv0=cv
-					}
-				else{
-					cv1=cv
-				}
-			}
-			
-			for(i=1;i<=length(Oms);i++){
-				rps[i]=getrp(Oms[i].mat[1::q+1,1::q+1],cv1)		
-			}
-			maxindex(rps,1,qvec,kmat)			
-			i=qvec[1]				// set potential new i to grid index with largest rejection prob
-			cv0=cv1
-		}while(rps[i]>0.05)		
-		cvs[q]=cv1
-		lengths[q]=cv1*gamma(.5*(q+1))/(gamma(.5*q))
-	} 
-	minindex(lengths,1,qvec,kmat)
-	q=qvec[1]
-	cv=cvs[q]*sqrt(q)	
-	W=W[.,1::q+1]
-}
-
-void setfinalWold(struct mats vector Oms, real matrix W, real scalar cv)
-// solves for optimal q and cv from Oms, stores results in W and cv
-{
-	external real scalar qmax
-	real scalar i, cv0,cv1,q
+	real scalar q
 	real vector cvs,lengths,qvec
 	real matrix kmat
 	
 	lengths=(1::qmax)
 	cvs=lengths
 	for(q=1;q<=qmax;q++){
-		cv0=invttail(q,0.025)/sqrt(q)   
-		cv1=cv0
-		do{
-			cv1=cv1+1/sqrt(q)
-		} while(maxrp(Oms,q,cv1)>0.05)
-		cv0=cv1-1/sqrt(q)
-		do{
-			cv=0.5*(cv1+cv0)
-			if(maxrp(Oms,q,cv)>0.05){
-				cv0=cv
-				}
-			else{
-				cv1=cv
-			}
-		}while(cv1-cv0>0.01/sqrt(q))		
-		cvs[q]=cv1
-		lengths[q]=cv1*gamma(.5*(q+1))/(gamma(.5*q))
+		cvs[q]=getcv(Oms,q,0.05)
+		lengths[q]=cvs[q]*gamma(.5*(q+1))/(sqrt(q)*gamma(.5*q))
 	} 
 	minindex(lengths,1,qvec,kmat)
 	q=qvec[1]
-	cv=cvs[q]*sqrt(q)	
+	cv=cvs[q]	
 	W=W[.,1::q+1]
 }
 
@@ -495,7 +470,34 @@ void set_scpcstats(string scalar w, string scalar sel)
 	st_matrix("scpcstats", (mean(y), SE, tau, pval, mean(y)-cvfin*SE,mean(y)+cvfin*SE ))	// coef, SE, tstat, p-value, 95% CI
 }
 
+void set_scpccvs()
+{	
+	external struct mats vector Omsfin
+	external real matrix Wfin
+	real scalar q,i,j
+	real matrix levels, cvs
+	
+	
+	levels=(.32,.10,.05,.01)
+	levels=(levels \ 2*levels )
+	cvs=0*levels
+	q=cols(Wfin)-1	
+	for(i=1;i<=rows(levels);i++){
+		for(j=1;j<=cols(levels);j++){
+			cvs[i,j]=getcv(Omsfin,q,levels[i,j])
+		}
+	}
+	st_matrix("scpc_cvs", cvs)	
+}
 
+void cvfromSTATA(real scalar level)
+{
+	external struct mats vector Omsfin
+	external real matrix Wfin
+	real scalar cv
+	cv=getcv(Omsfin,cols(Wfin)-1,1-level)
+	stata("disp as text"+char(34)+"Two-sided SCPC "+strofreal(level*100, "%4.1f")+"%-level CI u critical value: "+strofreal(cv, "%5.3f")+char(34))
+}
 end
 
 capture program drop scpc_setscores
@@ -564,8 +566,9 @@ end
 
 capture program drop scpc
 program scpc, eclass sortpreserve
-	syntax [if] [in], ///
+	syntax , ///
 		[ ///
+			cvs	///
 			avc(real -1) ///
 		]
 		//	syntax [if] [in], [
@@ -602,20 +605,23 @@ program scpc, eclass sortpreserve
 		qui matrix score `w' = coef if `scpc_sel' == 1
 		qui replace `w' = `w' + b[1,`i'] if `scpc_sel' == 1		
 		mata set_scpcstats("`w'", "`scpc_sel'")
-//matlist scpcstats 		
 		matrix scpctab[`i', 1] = scpcstats[1, 1..6]
-//		mata setpvalfromS(`k', "`w'", "`scpc_sel'", "`all_sd'")
 		local ++i
 	}
-//matlist scpctab	
 	matrix colnames scpctab = "Coef" "Std_Err" "  t  " "P>|t|" "95% Conf" "Interval"
 	local n = rowsof(scpctab)
 	local ands = `n'*"&"
 	local rs &-`ands'
 	local pavc : di %5.3f `avc'
 	matlist scpctab, border(all) title("Results from SCPC, maximal average pairwise correlation = `pavc'") cspec(o2& %12s | %9.0g o2 & %9.0g o2 &o1 %5.2f o1& o2 %6.3f o1 & o2 %9.0g & o1 %9.0g o2&) rspec(`rs')
+	if("`cvs'"=="cvs"){
+		mata set_scpccvs()
+		matrix rownames scpc_cvs ="Two-Sided" "One-Sided"
+		matrix colnames scpc_cvs ="32%" "10%" "5%" "1%" 
+		matlist scpc_cvs, border(all) title("Critical values of SCPC t-test")  cspec(o2& %12s | %6.4g o2 & %6.4g o2 & %6.4g o2 & %6.4g o2 &) rspec(&-&&)
+	}
  	// Return results
 	ereturn matrix scpcstats = scpctab
+	ereturn matrix scpcscvs = scpc_cvs
 	cap drop scpc_score*
 end
-
