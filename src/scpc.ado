@@ -605,13 +605,13 @@ program scpc, eclass sortpreserve
 	local ands = `n'*"&"
 	local rs &-`ands'
 	local pavc : di %5.3f `avc'
-	matlist scpctab, border(all) title("Results using SCPC") cspec(o2& %12s | %9.0g o2 & %9.0g o2 &o1 %5.2f o1& o2 %6.3f o1 & o2 %9.0g & o1 %9.0g o2&) rspec(`rs')
+	matlist scpctab, border(all) title("Inference using SCPC") cspec(o2& %12s | %9.0g o2 & %9.0g o2 &o1 %5.2f o1& o2 %6.3f o1 & o2 %9.0g & o1 %9.0g o2&) rspec(`rs')
 	if("`cvs'"=="cvs"){
 		mata set_scpccvs()
 		matrix rownames scpc_cvs ="Two-Sided" "One-Sided"
 		matrix colnames scpc_cvs ="32%" "10%" "5%" "1%" 
 		matlist scpc_cvs, border(all) title("Critical values of SCPC t-test")  cspec(o2& %12s | %6.3f o2 & %6.3f o2 & %6.3f o2 & %6.3f o2 &) rspec(&-&&)
-		ereturn matrix scpcscvs = scpc_cvs
+		ereturn matrix scpccvs = scpc_cvs
 	}
  	// Return results
 	ereturn matrix scpcstats = scpctab
