@@ -41,6 +41,7 @@ The underlying algorithm can also handle large datasets; internally, a different
 
 {phang}
 {opt avc(#)} overrides default value of 0.05 for the maximal average pairwise correlation; see {help scpc##mainpaper:Müller and Watson (2021)} for details.
+{phang}
 {opt cvs} prints a table of one- and two-sided critical values of SCPC t-statistic of level 32%, 10%, 5% and 1%.
 
 
