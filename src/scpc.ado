@@ -388,8 +388,12 @@ void setOmsWfin(real scalar avc0, string scalar sel)
 	
 	s=st_data(.,"s_*",sel)		// expects locations in s_1, s_2, s_3... etc. Dimension d is equal to the number of s_ variables
 	n=rows(s)
+	if(sum(rowmissing(s) :== 0) < n){
+		stata("disp as text"+char(34)+"missing value(s) in s_* variable; aborting"+char(34))
+		exit(999)
+	}
 	if(n<5){
-		stata("disp as text"+char(34)+"no locations found in variables s_1, s_2 etc; aborting"+char(34))
+		stata("disp as text"+char(34)+"too few locations found in variables s_1, s_2 etc; aborting"+char(34))
 		exit(999)
 	}		
 	stata("disp as text"+char(34)+"found "+strofreal(rows(s), "%6.0f")+" observations / clusters and "+strofreal(cols(s), "%3.0f")+"-dimensional locations in s_*"+char(34))
@@ -418,7 +422,7 @@ void setOmsWfin(real scalar avc0, string scalar sel)
 		if(n<2000){
 	// code for small n
 			permfin=(1::n)
-			distmat=getdistmat(s)
+			distmat=getdistmat(s)			
 			c0=getc0fromavc(lvech(distmat),avc0)		
 			cmax=getc0fromavc(lvech(distmat),minavc)	
 			W=getW(distmat,c0)
@@ -573,7 +577,7 @@ program scpc, eclass sortpreserve
 		exit(999)
 	}	
 	if `avc'==-1 {
-		local avc 0.05	// set default
+		local avc 0.03	// set default
 	}
 	if `avc'<0.001 | `avc'>0.99 {
 		disp as text "average correlation must be between 0.001 and 0.99; aborting"
