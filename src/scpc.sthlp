@@ -16,6 +16,7 @@
 {synopthdr}
 {synoptline}
 {synopt :{opt avc(#)}}overrides default value of 0.03 for the maximal average pairwise correlation (must be between 0.001 and 0.99){p_end}
+{synopt :{opt k(#)}}overrides default value of 10 for the number coefficients SCPC t-statistics are being produced{p_end}
 {synopt :{opt cvs}}prints a table of one- and two-sided critical values of SCPC t-statistic of level 32%, 10%, 5% and 1%{p_end}
 {synoptline}
 {p2colreset}{...}
@@ -32,7 +33,7 @@ It is implemented as a postestimation command that can be used after the Stata c
 as long as these are used with the standard error option {it:robust} or {it:cluster} (see {manhelp vce_option R:vce option}). If the estimation uses the {it:cluster} option, 
 then {it:scpc} corrects for spatial correlations between clusters, assuming that all observations within a cluster share the same location.
 By default, {it:scpc} conducts spatially robust inference under the assumption that the largest average pairwise correlation between the observations / clusters is no larger than 0.03. This default can be overridden by the
-{it:avc} option. Note that computation times increase for smaller values of {it:avc}.
+{it:avc} option. Note that computation times increase for smaller values of {it:avc}. To make the algorithm faster, SCPC inference is computed only for the first 10 coefficients. This can be changed by the {it:k} option. 
 The underlying algorithm can also handle large datasets; internally, a different algorithm is used when the number of observations / clusters exceeds 2000. Computing time is appproximately linear in the number of observations, and is roughtly one minute for 5000 observations.
  
 
@@ -45,6 +46,8 @@ The underlying algorithm can also handle large datasets; internally, a different
 {phang} 
 {opt cvs} prints a table of one- and two-sided critical values of SCPC t-statistic of level 32%, 10%, 5% and 1%.
 
+{phang} 
+{opt k(#)} overrides default value of 10 for the number of coefficients for which SCPC inference is computed.
 
 {marker examples}{...}
 {title:Examples}
@@ -55,7 +58,8 @@ The underlying algorithm can also handle large datasets; internally, a different
 {phang}{cmd:. regress mpg weight length, robust}{p_end}
 {phang}{cmd:. scpc}{p_end}
 {phang}{cmd:. scpc ,avc(0.03)}{space 6}(equivalent to above command){p_end}
-{phang}{cmd:. scpc ,avc(0.01) cvs}{p_end}
+{phang}{cmd:. scpc ,k(4)}(equivalent to above command){p_end}
+{phang}{cmd:. scpc ,avc(0.01) cvs k(1)}{p_end}
 {phang}{cmd:. gen clust=round(rnormal(0,10),1)}{p_end}
 {phang}{cmd:. regress mpg weight length, cluster(clust)}{p_end}
 {phang}{cmd:. scpc}{p_end}

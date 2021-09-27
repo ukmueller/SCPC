@@ -565,6 +565,7 @@ program scpc, eclass sortpreserve
 	syntax , ///
 		[ ///
 			cvs	///
+			k(real 10) ///
 			avc(real -1) ///
 		]
 		//	syntax [if] [in], [
@@ -588,8 +589,10 @@ program scpc, eclass sortpreserve
 	qui sum `scpc_sel', detail
 	local neff r(sum)
 	matrix b=e(b)
-	local na : colnames e(V)
-	matrix scpctab =e(b)'*(1,1,1,1,1,1)
+	local k=min(colsof(b),`k')
+	matrix b=b[1..., 1..`k']
+	local na : colnames b
+	matrix scpctab =b'*(1,1,1,1,1,1)
 	tokenize `na'
 	mata setOmsWfin(`avc',"`scpc_sel'")
 	
@@ -609,7 +612,8 @@ program scpc, eclass sortpreserve
 	local ands = `n'*"&"
 	local rs &-`ands'
 	local pavc : di %5.3f `avc'
-	matlist scpctab, border(all) title("Inference using SCPC") cspec(o2& %12s | %9.0g o2 & %9.0g o2 &o1 %5.2f o1& o2 %6.3f o1 & o2 %9.0g & o1 %9.0g o2&) rspec(`rs')
+	local tit "SCPC Inference for first `k' coefficients"
+	matlist scpctab, border(all) title(`tit') cspec(o2& %12s | %9.0g o2 & %9.0g o2 &o1 %5.2f o1& o2 %6.3f o1 & o2 %9.0g & o1 %9.0g o2&) rspec(`rs')
 	if("`cvs'"=="cvs"){
 		mata set_scpccvs()
 		matrix rownames scpc_cvs ="Two-Sided" "One-Sided"
