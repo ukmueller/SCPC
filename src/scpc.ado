@@ -501,7 +501,7 @@ program scpc_setscores, sortpreserve
 	syntax, scpc_sel(name)
 	tempvar e
 	local slist ""
-//	quietly{
+	quietly{
 	if(e(cmd)=="regress" | e(cmd)=="areg" | e(cmd)=="logit" | e(cmd)=="probit"){
 		predict `e',sc
 		local na : colnames e(V)
@@ -556,7 +556,7 @@ program scpc_setscores, sortpreserve
 			local ++i
 		}
 	}
-//	}
+	}
 end
 
 

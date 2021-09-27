@@ -16,7 +16,7 @@
 {synopthdr}
 {synoptline}
 {synopt :{opt avc(#)}}overrides default value of 0.03 for the maximal average pairwise correlation (must be between 0.001 and 0.99){p_end}
-{synopt :{opt k(#)}}overrides default value of 10 for the number coefficients SCPC t-statistics are being produced{p_end}
+{synopt :{opt k(#)}}overrides default value of 10 for the number coefficients SCPC t-statistics are being computed{p_end}
 {synopt :{opt cvs}}prints a table of one- and two-sided critical values of SCPC t-statistic of level 32%, 10%, 5% and 1%{p_end}
 {synoptline}
 {p2colreset}{...}
