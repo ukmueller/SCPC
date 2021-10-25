@@ -12,14 +12,27 @@ real scalar getavc(real scalar c, real vector dist)
 
 real matrix getdistmat(real matrix s)
 // computes matrix of distances from locations
-{
+// if external latlongflag=0, distances computed as norm, otherwise latitude / longitude and haversine formula for sphere with radius 1/Pi
+{	
+	external real scalar latlongflag
 	real matrix mat
-	real scalar n,i
+	real scalar n,i,c
+	real matrix d
 	n=rows(s)
 	mat=J(n,n,0)
-	for(i=1;i<=n;i++){
-		mat[.,i]=sqrt(rowsum((s:-s[i,.]):^2))
+	if(latlongflag==0){
+		for(i=1;i<=n;i++){
+			mat[.,i]=sqrt(rowsum((s:-s[i,.]):^2))
+		}
 	}
+	else
+		{
+		c=3.14159265359/180
+		for(i=1;i<=n;i++){
+			d=(.5*c)*(s:-s[i,.])
+			mat[.,i]=asin(sqrt(sin(d[.,1]):^2  + cos(c*s[i,1])*(cos(c*s[.,1]):*(sin(d[.,2]):^2))))/3.14159265359
+		}
+	}	
 	return(mat)
 }	
 
@@ -229,22 +242,52 @@ XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 XXXXXXXXXXXXXXX now routines for n>2000 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  */
 
+real matrix getdistvec(real matrix s1, real matrix s2)
+// computes vector of pariwise location distances
+// if external latlongflag=0, distances computed as norm, otherwise latitude / longitude and haversine formula for sphere with radius 1/Pi
+{
+	external real scalar latlongflag
+	real vector dist
+	real scalar c
+	real matrix d
+	if(latlongflag==0){
+		dist=sqrt(rowsum((s1-s2):^2))
+	}
+	else
+		{
+		c=3.14159265359/180
+		d=(.5*c)*(s1-s2)
+		dist=asin(sqrt(sin(d[.,1]):^2  + cos(c*s1[.,1]):*(cos(c*s2[.,1]):*(sin(d[.,2]):^2))))/3.14159265359
+	}	
+	return(dist)
+}	
 
 void normalize_s(real matrix s)
 // normalizes locations to ensure invariance given probabilistic algorithm
+// if locations are in lat/long format, just normalize longitudes (so invariance of rotations around polar axis)
 {
+	external real scalar latlongflag
 	real matrix evecs
 	real vector evals
 	external real vector permfin
 	
-	s=s:-mean(s)		
-	symeigensystem(cross(s,s),evecs,evals)
-	s=s*evecs		
-	if(max(s[.,1])!=max(abs(s[.,1]))) s=-s
-	permfin=order(s,1)	
-	s=s[permfin,.]
-	s=s:-colmin(s)
-	s=s/max(s)	
+	if(latlongflag==0) {
+		s=s:-mean(s)		
+		symeigensystem(cross(s,s),evecs,evals)
+		s=s*evecs		
+		if(max(s[.,1])!=max(abs(s[.,1]))) s=-s
+		permfin=order(s,(1::cols(s)))	
+		s=s[permfin,.]
+		s=s:-colmin(s)
+		s=s/max(s)	
+	}
+	else
+	{
+		s[.,2]=s[.,2]:-mean(s[.,2])
+		s[.,2]=mod(s[.,2]+180,360)-180
+		permfin=order(s,(1,2))	
+		s=s[permfin,.]
+	}
 }
 
 real scalar nextU()
@@ -354,7 +397,8 @@ struct mats vector LNgetOms(real matrix s, real scalar c0, real scalar cmax,real
 	n=rows(s)
 	Oms=mats(getnc(c0,cmax))
 	inds=raninds(n,capM)
-	dist=sqrt(rowsum((s[inds[1::capM],.]-s[inds[2::capM+1],.]):^2)) // capM distance vector of pairwise distances
+//	dist=sqrt(rowsum((s[inds[1::capM],.]-s[inds[2::capM+1],.]):^2)) // capM distance vector of pairwise distances
+	dist=getdistvec(s[inds[1::capM],.],s[inds[2::capM+1],.])
 	W1=W[inds[1::capM],.]		
 	W2=W[inds[2::capM+1],.]
 	c=c0
@@ -372,12 +416,13 @@ XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 XXXXXXXXXXXXXXX driver routines XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  */
 
-void setOmsWfin(real scalar avc0, string scalar sel)
+void setOmsWfin(real scalar avc0, string scalar sel, string scalar latlong)
 {
 	real matrix s
 	real scalar c0,cmax,cv,n
 	real matrix W,distmat
-	external real scalar random_t	
+	external real scalar random_t
+	external real scalar latlongflag
 	struct mats vector Oms
 	external real scalar qmax, capM, m, cgridfac, capN, minavc
 
@@ -397,6 +442,20 @@ void setOmsWfin(real scalar avc0, string scalar sel)
 		exit(999)
 	}		
 	stata("disp as text"+char(34)+"found "+strofreal(rows(s), "%6.0f")+" observations / clusters and "+strofreal(cols(s), "%3.0f")+"-dimensional locations in s_*"+char(34))
+	latlongflag=latlong!=""
+	if(latlongflag==0) {
+		stata("disp as text"+char(34)+"using Euclidan norm to compute distance between locations stored in s_*")
+	}
+	else
+	{
+		if(cols(s)!=2) {
+			stata("disp as text"+char(34)+"with latlong option, there must only be s_1 and s_2 present")
+			exit(999)
+		}
+		else{
+			stata("disp as text"+char(34)+"Computing distances on surface of sphere treating s_1 as latitude and s_2 as longitude")
+		}
+	}
 	setGQxw()
 	minavc=0.00001			// minimal avc value for which size control is checked
 	cgridfac=1.2			// factor in c-grid for size control
@@ -501,9 +560,9 @@ program scpc_setscores, sortpreserve
 	syntax, scpc_sel(name)
 	tempvar e
 	local slist ""
-	quietly{
-	if(e(cmd)=="regress" | e(cmd)=="areg" | e(cmd)=="logit" | e(cmd)=="probit"){
-		predict `e',sc
+//	quietly{
+	if(e(cmd)=="regress" | e(cmd)=="logit" | e(cmd)=="probit"){
+		predict `e' if e(sample),sc
 		local na : colnames e(V)
 		tokenize `na'
 		local i = 1
@@ -511,6 +570,25 @@ program scpc_setscores, sortpreserve
 			capture drop scpc_score`i'
 			if("``i''"=="_cons") gen scpc_score`i'=`e' if e(sample)
 			else gen scpc_score`i'=`e'*``i'' if e(sample)
+			local slist "`slist' scpc_score`i'"
+			local ++i
+		}
+	}
+	else if(e(cmd)=="areg"){
+		predict `e' if e(sample),sc
+		sort `e(absvar)'
+		local na : colnames e(V)
+		tokenize `na'
+		local i = 1
+		while "``i''" != "" {
+			capture drop scpc_score`i'
+			if("``i''"=="_cons") gen scpc_score`i'=`e' if e(sample)
+			else{
+				tempvar x
+				by `e(absvar)': egen `x'=mean(``i'') if e(sample)
+				sum  ``i'' if e(sample)			
+				gen scpc_score`i'=`e'*(``i''-`x'+`r(mean)') if e(sample)
+			}
 			local slist "`slist' scpc_score`i'"
 			local ++i
 		}
@@ -546,7 +624,9 @@ program scpc_setscores, sortpreserve
 	if( "`e(clustvar)'"=="") qui replace `scpc_sel'=1 if e(sample)
 	else{
 		tempvar TotScore
-		sort `e(clustvar)'
+		tempvar es
+		gen `es'=0 if e(sample)
+		sort `e(clustvar)' `es'
 		local i = 1
 		while "``i''" != ""{
 			capture drop `TotScore'
@@ -556,7 +636,7 @@ program scpc_setscores, sortpreserve
 			local ++i
 		}
 	}
-	}
+//	}
 end
 
 
@@ -567,6 +647,7 @@ program scpc, eclass sortpreserve
 			cvs	///
 			k(real 10) ///
 			avc(real -1) ///
+			latlong ///
 		]
 		//	syntax [if] [in], [
 //		avc(real 1.0)
@@ -586,6 +667,8 @@ program scpc, eclass sortpreserve
 	}
 	tempvar scpc_sel
 	scpc_setscores, scpc_sel(`scpc_sel')
+	mata setOmsWfin(`avc',"`scpc_sel'","`latlong'")
+	
 	qui sum `scpc_sel', detail
 	local neff r(sum)
 	matrix b=e(b)
@@ -594,7 +677,6 @@ program scpc, eclass sortpreserve
 	local na : colnames b
 	matrix scpctab =b'*(1,1,1,1,1,1)
 	tokenize `na'
-	mata setOmsWfin(`avc',"`scpc_sel'")
 	
 	// Loop through covariates
 	local i = 1
@@ -624,4 +706,23 @@ program scpc, eclass sortpreserve
  	// Return results
 	ereturn matrix scpcstats = scpctab
 	cap drop scpc_score*
+end
+
+capture program drop analyticV
+program analyticV
+// compares stata covariance matrix with covariance matrix implied by scores and sandwich formula
+// should return values close to one or something is wrong
+    matrix scpc_Bread=e(V_modelbased)
+    if( scpc_Bread[1,1]==.) {
+        disp as text "e(V_modelbased) missing; aborting"
+        exit(999)
+    }   
+    tempvar scpc_sel
+    scpc_setscores, scpc_sel(`scpc_sel')
+    qui corr scpc_score* if `scpc_sel' == 1, cov
+    tempname V
+    mat `V'= r(N)*scpc_Bread*r(C)*scpc_Bread'
+	matlist `V'
+	mata Vx=Vx:/V
+	mata Vx
 end

@@ -16,6 +16,7 @@
 {synopthdr}
 {synoptline}
 {synopt :{opt avc(#)}}overrides default value of 0.03 for the maximal average pairwise correlation (must be between 0.001 and 0.99){p_end}
+{synopt :{op latlong}}if present, expects s_1 to contain latitude and s_2 to be longitude and uses implied great-circle distance; if not present, computes Euclidian distance between coordinates defines by s_* variables{p_end}
 {synopt :{opt k(#)}}overrides default value of 10 for the number coefficients SCPC t-statistics are being computed{p_end}
 {synopt :{opt cvs}}prints a table of one- and two-sided critical values of SCPC t-statistic of level 32%, 10%, 5% and 1%{p_end}
 {synoptline}
@@ -27,9 +28,8 @@
 
 {pstd}
 This Stata package implements the Spatial Correlation Principal Components (SCPC) method described in {help scpc##mainpaper:Müller and Watson (2021)} for the construction of confidence intervals that account for many forms of spatial correlation.
-The {it:scpc} command expects the locations of the observations to be stored in the variables s_*. For instance,
-if s_1 and s_2 are the only variables whose name begins with "s_", then the method uses 2-dimensional locations defined by these variables.
-It is implemented as a postestimation command that can be used after the Stata commands {manhelp regress R:regress}, {manhelp ivregress R:ivregress}, {manhelp areg R:areg}, {manhelp logit R:logit} or {manhelp probit R:probit},
+The {it:scpc} command expects the locations of the observations to be stored in the variables s_*. If the option {it:latlong} is present, then s_1 is interpreted as the latitude, and s_2 as the longitude of the observation, and distances between observations are computed with the great-circle formula. If the option {it:latlong} is not present, then all {it:p} variables beginning with s_ are interpreted as points in {it:p}-dimensional space, and distances are computed with the Euclidian norm. 
+scpc is implemented as a postestimation command that can be used after the Stata commands {manhelp regress R:regress}, {manhelp ivregress R:ivregress}, {manhelp areg R:areg}, {manhelp logit R:logit} or {manhelp probit R:probit},
 as long as these are used with the standard error option {it:robust} or {it:cluster} (see {manhelp vce_option R:vce option}). If the estimation uses the {it:cluster} option, 
 then {it:scpc} corrects for spatial correlations between clusters, assuming that all observations within a cluster share the same location.
 By default, {it:scpc} conducts spatially robust inference under the assumption that the largest average pairwise correlation between the observations / clusters is no larger than 0.03. This default can be overridden by the
@@ -42,6 +42,9 @@ The underlying algorithm can also handle large datasets; internally, a different
 
 {phang}
 {opt avc(#)} overrides default value of 0.03 for the maximal average pairwise correlation; see {help scpc##mainpaper:Müller and Watson (2021)} for details.
+
+{phang}
+{opt latlong} if present, expects s_1 to contain latitude and s_2 to be longitude and uses implied great-circle distance; if not present, computes Euclidian distance between coordinates defines by variables beginning with "s_".
 
 {phang} 
 {opt cvs} prints a table of one- and two-sided critical values of SCPC t-statistic of level 32%, 10%, 5% and 1%.
