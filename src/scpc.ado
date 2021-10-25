@@ -560,7 +560,7 @@ program scpc_setscores, sortpreserve
 	syntax, scpc_sel(name)
 	tempvar e
 	local slist ""
-//	quietly{
+	quietly{
 	if(e(cmd)=="regress" | e(cmd)=="logit" | e(cmd)=="probit"){
 		predict `e' if e(sample),sc
 		local na : colnames e(V)
@@ -636,7 +636,7 @@ program scpc_setscores, sortpreserve
 			local ++i
 		}
 	}
-//	}
+	}
 end
 
 
@@ -722,7 +722,9 @@ program analyticV
     qui corr scpc_score* if `scpc_sel' == 1, cov
     tempname V
     mat `V'= r(N)*scpc_Bread*r(C)*scpc_Bread'
-	matlist `V'
+	di r(N)
+	mata Vx=st_matrix("`V'")
+	mata V=st_matrix("e(V)")
 	mata Vx=Vx:/V
-	mata Vx
+	mata Vx[1::10,1::10]
 end
