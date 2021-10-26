@@ -64,13 +64,17 @@ real scalar getc0fromavc(real vector dist,real scalar avc0)
 	real scalar c0,c1,c
 	
 	c0=10
-	do{
+	c1=10
+	while(getavc(c0,dist)<avc0)
+	{
+		c1=c0
 		c0=.5*c0
-	} while(getavc(c0,dist)<avc0)
-	c1=20
-	do{
-		c1=2*c1		
-	} while(getavc(c1,dist)>avc0)	
+	}
+	while(getavc(c1,dist)>avc0 & c1<5000)
+	{
+		c0=c1
+		c1=2*c1
+	}
 	do{
 		c=sqrt(c1*c0)
 		if(getavc(c,dist)>avc0){
@@ -722,9 +726,10 @@ program analyticV
     qui corr scpc_score* if `scpc_sel' == 1, cov
     tempname V
     mat `V'= r(N)*scpc_Bread*r(C)*scpc_Bread'
-	di r(N)
+	di "number of terms in score:", r(N)
 	mata Vx=st_matrix("`V'")
 	mata V=st_matrix("e(V)")
+	di "ratio of STATA covariance matrix and standard Sandwich formula for first 10 elements"
 	mata Vx=Vx:/V
-	mata Vx[1::10,1::10]
+	mata Vx[1::min((10,cols(Vx))),1::min((10,cols(Vx)))]
 end
