@@ -288,7 +288,7 @@ void normalize_s(real matrix s)
 	else
 	{
 		s[.,2]=s[.,2]:-mean(s[.,2])
-		s[.,2]=mod(s[.,2]+180,360)-180
+		s[.,2]=mod(s[.,2]:+180,360):-180
 		permfin=order(s,(1,2))	
 		s=s[permfin,.]
 	}
