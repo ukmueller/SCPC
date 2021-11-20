@@ -280,7 +280,7 @@ void normalize_s(real matrix s)
 		symeigensystem(cross(s,s),evecs,evals)
 		s=s*evecs		
 		if(max(s[.,1])!=max(abs(s[.,1]))) s=-s
-		permfin=order(s,(1::cols(s)))	
+		permfin=order(s,(1::cols(s))')	
 		s=s[permfin,.]
 		s=s:-colmin(s)
 		s=s/max(s)	
