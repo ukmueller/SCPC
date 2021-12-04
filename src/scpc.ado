@@ -163,7 +163,7 @@ real scalar getcv(struct mats vector Oms, real scalar q, real scalar level)
 			}
 		}
 		
-		while(cv1-cv0>0.01/sqrt(q)){
+		while(cv1-cv0>0.001/sqrt(q)){
 			cv=0.5*(cv1+cv0)
 			if(getrp(Oms[i].mat[1::q+1,1::q+1],cv)>level){
 				cv0=cv
@@ -177,7 +177,10 @@ real scalar getcv(struct mats vector Oms, real scalar q, real scalar level)
 			rps[i]=getrp(Oms[i].mat[1::q+1,1::q+1],cv1)		
 		}
 		maxindex(rps,1,qvec,kmat)			
-		i=qvec[1]				// set potential new i to grid index with largest rejection prob
+		if(i==qvec[1]){
+			break					// done if largest RP occured with i
+			}
+		i=qvec[1]					// set potential new i to grid index with largest rejection prob
 		cv0=cv1
 	}while(rps[i]>level)
 	return(cv1*sqrt(q))
