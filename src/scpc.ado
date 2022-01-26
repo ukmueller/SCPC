@@ -423,11 +423,20 @@ XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 XXXXXXXXXXXXXXX driver routines XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX  */
 
+void setcvsflag(real scalar cvsf)
+{
+	external real scalar cvsflag
+	cvsflag=cvsf
+}
+
+
 void setOmsWfin(real scalar avc0, string scalar sel, string scalar latlong)
 {
-	real matrix s
-	real scalar c0,cmax,cv,n
-	real matrix W,distmat
+	external real matrix s
+	external real scalar c0,cmax
+	real scalar cv,n
+	external real matrix distmat
+	real matrix W
 	external real scalar random_t
 	external real scalar latlongflag
 	struct mats vector Oms
@@ -437,6 +446,7 @@ void setOmsWfin(real scalar avc0, string scalar sel, string scalar latlong)
 	external real matrix Wfin
 	external real vector permfin
 	external real scalar cvfin
+	external real scalar condflag
 	
 	s=st_data(.,"s_*",sel)		// expects locations in s_1, s_2, s_3... etc. Dimension d is equal to the number of s_ variables
 	n=rows(s)
@@ -463,6 +473,7 @@ void setOmsWfin(real scalar avc0, string scalar sel, string scalar latlong)
 			stata("disp as text"+char(34)+"Computing distances on surface of sphere treating s_1 as latitude and s_2 as longitude")
 		}
 	}
+	condflag=0
 	setGQxw()
 	minavc=0.00001			// minimal avc value for which size control is checked
 	cgridfac=1.2			// factor in c-grid for size control
@@ -485,7 +496,7 @@ void setOmsWfin(real scalar avc0, string scalar sel, string scalar latlong)
 	}
 	while(1){
 		qmax=min((n-1,qmax))
-		if(n<2000){
+		if(n<4500){
 	// code for small n
 			permfin=(1::n)
 			distmat=getdistmat(s)			
@@ -515,49 +526,152 @@ void setOmsWfin(real scalar avc0, string scalar sel, string scalar latlong)
 		if(cols(W)-1<qmax | qmax==n-1) break
 		qmax=round(qmax+qmax/2,1)
 	}
-	stata("disp as text"+char(34)+"SCPC optimal q = "+strofreal(cols(W)-1, "%3.0f")+" for maximal average pairwise correlation = "+strofreal(avc0, "%5.3f")+`pavc'" resulting in 5% two-sided critical value = "+strofreal(cv, "%6.3f")+char(34))
+	stata("disp as text"+char(34)+"SCPC optimal q = "+strofreal(cols(W)-1, "%3.0f")+" for maximal average pairwise correlation = "+strofreal(avc0, "%5.3f")+`pavc'"")
 	
 	Wfin=W
 	Omsfin=Oms
 	cvfin=cv
+
 }
 	
 void set_scpcstats(string scalar w, string scalar sel)
 {	
 	real vector y
 	real scalar tau, pval, SE
-	external struct mats vector Omsfin
-	external real matrix Wfin
+	external real scalar condflag, cvsflag
+	external struct mats vector Omsfin, Omsxfin
+	external real matrix Wfin, Wx
 	external real vector permfin
-	external real scalar cvfin
+	external real scalar cvfin,cvxfin
+	real scalar cv
+	
 
 	y=st_data(.,w,sel)
 
 	y=y[permfin]	
 	tau=gettau(y,Wfin)
 	pval=maxrp(Omsfin,cols(Wfin)-1,abs(tau)/sqrt(cols(Wfin)-1)) 
+	cv=cvfin
+	if(condflag) {
+		pval=max((pval,maxrp(Omsxfin,cols(Wx)-1,abs(tau)/sqrt(cols(Wx)-1))))
+		cv=max((cv,cvxfin))
+	}
 	SE=norm(cross(Wfin[.,2::cols(Wfin)],y))/(sqrt(cols(Wfin)-1)*sqrt(rows(Wfin)))
-	st_matrix("scpcstats", (mean(y), SE, tau, pval, mean(y)-cvfin*SE,mean(y)+cvfin*SE ))	// coef, SE, tstat, p-value, 95% CI
+	st_matrix("scpcstats", (mean(y), SE, tau, pval, mean(y)-cv*SE,mean(y)+cv*SE ))	// coef, SE, tstat, p-value, 95% CI
 }
+
+void set_ccspc()
+{
+	external struct mats vector Omsxfin
+	external real matrix s
+	external real scalar c0,cmax,cvxfin
+	external real matrix distmat, Wx
+	
+	if(rows(Wx)<4500){
+		Omsxfin=getOms(distmat,c0,cmax,Wx)		
+		}
+	else{
+		Omsxfin=LNgetOms(s,c0,cmax,Wx)
+	}
+	cvxfin=getcv(Omsxfin,cols(Wx)-1,0.05)	
+}
+
+void set_Wx_cluster(string scalar Vname, string scalar sel)
+{	
+	external real scalar condflag
+	external real matrix Wfin
+	external real matrix Wx
+	external real vector permfin
+	real vector r
+	real scalar i
+	
+	condflag=1
+	r=J(rows(Wfin),1,0)
+	Wx=Wfin
+	for(i=1;i<=cols(Wfin);i++){
+		r[permfin]=Wfin[.,i]	
+		stata("cap drop scpc_r")
+		stata("qui gen scpc_r=.")
+		stata("qui replace scpc_r=0 if e(sample)")
+		st_store(.,"scpc_r",sel,r)
+		stata("cap drop scpc_rx")
+		stata("qui by `e(clustvar)': egen scpc_rx=total(scpc_r) if e(sample)")	
+		stata("cap drop scpc_r")
+		if(i==1){
+			stata("qui gen scpc_r=scpc_rx*scpc_xs if e(sample)")
+		}
+		else{
+			stata("qui replace scpc_rx=scpc_rx*scpc_xs")
+			stata("_estimates hold oreg, restore")		
+			stata(Vname)
+			stata("qui predict scpc_r, resid")	
+			stata("_estimates unhold oreg")
+		}
+		stata("cap drop scpc_rx")
+		stata("qui by `e(clustvar)': egen scpc_rx=total(scpc_r*scpc_x) if e(sample)")
+		
+		Wx[.,i]=st_data(.,"scpc_rx",sel)
+	}
+	set_ccspc()
+}
+
+void set_Wx_nocluster(string scalar Vname, string scalar sel)
+{	
+	external real scalar condflag
+	external real matrix Wfin
+	external real matrix Wx
+	external real vector permfin
+	real vector r
+	real scalar i
+	
+	condflag=1
+	r=J(rows(Wfin),1,0)
+	Wx=Wfin	
+	for(i=1;i<=cols(Wfin);i++){
+		r[permfin]=Wfin[.,i]	
+		stata("cap drop scpc_r")
+		stata("qui gen scpc_r=.")
+		st_store(.,"scpc_r",sel,r)
+		stata("cap drop scpc_rx")
+		if(i==1){
+			stata("qui gen scpc_rx=scpc_r*scpc_xs*scpc_x if e(sample)")
+		}
+		else{
+			stata("qui gen scpc_rx=scpc_r*scpc_xs if e(sample)")
+			stata("_estimates hold oreg, restore")
+			stata(Vname)
+			stata("cap drop scpc_r")
+			stata("qui predict scpc_r, resid")	
+			stata("_estimates unhold oreg")
+			stata("qui replace scpc_rx=scpc_r*scpc_x if e(sample)")
+		}		
+		Wx[.,i]=st_data(.,"scpc_rx",sel)		
+	}	
+	set_ccspc()
+}
+
 
 void set_scpccvs()
 {	
-	external struct mats vector Omsfin
+	external struct mats vector Omsfin, Omsxfin
 	external real matrix Wfin
+	external real scalar condflag
 	real scalar q,i,j
 	real matrix levels, cvs
 	
 	
 	levels=(.32,.10,.05,.01)
-	levels=(levels \ 2*levels )
-	cvs=0*levels
+	cvs=0*levels	
 	q=cols(Wfin)-1	
 	for(i=1;i<=rows(levels);i++){
 		for(j=1;j<=cols(levels);j++){
 			cvs[i,j]=getcv(Omsfin,q,levels[i,j])
+			if(condflag){
+				cvs[i,j]=max((cvs[i,j],getcv(Omsxfin,q,levels[i,j])))
+			}
 		}
 	}
-	st_matrix("scpc_cvs", cvs)	
+	st_matrix("scpc_cvs_c", cvs)	
 }
 
 end
@@ -565,6 +679,7 @@ end
 capture program drop scpc_setscores
 program scpc_setscores, sortpreserve
 	syntax, scpc_sel(name)
+	cap drop scpc_score*
 	tempvar e
 	local slist ""
 	quietly{
@@ -606,7 +721,6 @@ program scpc_setscores, sortpreserve
 		
 		local j=`: word count `e(instd)''+1
 		gen `e'=`stata_scr'`j'
-		di `j'
 		local na : colnames e(V)
 		tokenize `na'
 		local i = 1
@@ -631,9 +745,6 @@ program scpc_setscores, sortpreserve
 	if( "`e(clustvar)'"=="") qui replace `scpc_sel'=1 if e(sample)
 	else{
 		tempvar TotScore
-		tempvar es
-		gen `es'=0 if e(sample)
-		sort `e(clustvar)' `es'
 		local i = 1
 		while "``i''" != ""{
 			capture drop `TotScore'
@@ -654,7 +765,8 @@ program scpc, eclass sortpreserve
 			cvs	///
 			k(real 10) ///
 			avc(real -1) ///
-			latlong ///
+			latlong		///
+			uncond   ///
 		]
 		//	syntax [if] [in], [
 //		avc(real 1.0)
@@ -672,28 +784,98 @@ program scpc, eclass sortpreserve
 		disp as text "average correlation must be between 0.001 and 0.99; aborting"
 		exit(999)
 	}
+	if( "`e(clustvar)'"!="") {
+		tempvar es
+		gen `es'=0 if e(sample)
+		sort `e(clustvar)' `es'
+	}
 	tempvar scpc_sel
 	scpc_setscores, scpc_sel(`scpc_sel')
 	mata setOmsWfin(`avc',"`scpc_sel'","`latlong'")
 	
 	qui sum `scpc_sel', detail
-	local neff r(sum)
-	matrix b=e(b)
+	tempname neff 
+	matrix `neff'=r(sum)
+	matrix b=e(b)	
+	matrix scpc_Bread0=e(V_modelbased)
+	local clist 
+	local na : colnames b
+	if(e(cmd)=="regress"){
+		tokenize `na'
+		forval j = 1/`= colsof(b)' {
+			if "``j''" != "_cons"  {
+			local clist `clist' ``j''
+			}
+		}
+		local clist="qui reg scpc_rx `clist'"
+	}	
+	else if(e(cmd)=="ivregress"){
+		local elist `e(insts)'
+		local i=`: word count `e(instd)''+1
+		
+		tempvar ess
+		qui gen `ess'=0
+		qui replace `ess'=1 if e(sample)
+		_estimates hold oreg, restore
+		cap drop scpc_fs_*
+		local clist 
+		tokenize `na'
+		forval j = 1/`= colsof(b)' {
+			if(`j'<`i'){			
+				qui reg ``j'' `elist' if `ess'
+				qui predict scpc_fs_`j', xb
+				qui replace scpc_fs_`j'=. if !`ess'
+				local clist `clist' scpc_fs_`j'
+			}
+			else{
+				local clist `clist' ``j''
+			}
+		}
+		matrix colnames scpc_Bread0 = `clist'
+		_estimates unhold oreg		
+		local clist="qui ivregress 2sls scpc_rx `e(exogr)' (`e(instd)' = `e(insts)' )"	
+	}
+	else if("`uncond'"==""){
+		disp as text "conditional critical values only supported for ivregress 2sls and regress, use option uncond for only unconditionally valid critical values; aborting"
+		exit(999)
+	}
+	
 	local k=min(colsof(b),`k')
 	matrix b=b[1..., 1..`k']
 	local na : colnames b
 	matrix scpctab =b'*(1,1,1,1,1,1)
+	matrix scpc_cvs =b'*(1,1,1,1)
+
 	tokenize `na'
 	
 	// Loop through covariates
-	local i = 1
+	local i = 1	
 	while "``i''" != "" {
 		tempvar w
-		matrix coef = r(sum)*scpc_Bread[`i', 1...]
-		qui matrix score `w' = coef if `scpc_sel' == 1
-		qui replace `w' = `w' + b[1,`i'] if `scpc_sel' == 1		
-		mata set_scpcstats("`w'", "`scpc_sel'")
+		matrix coef = `neff'*scpc_Bread[`i', 1...]
+		qui matrix score `w' = coef if `scpc_sel' == 1		
+		qui replace `w' = `w' + b[1,`i'] if `scpc_sel' == 1
+		if("`uncond'"==""){	
+			capture drop scpc_x 
+			capture drop scpc_xs			
+			matrix coef = `neff'*scpc_Bread0[`i', 1...]	
+			qui matrix score scpc_x = coef if e(sample)						
+			if( "`e(clustvar)'"=="") {
+				qui gen scpc_xs=sign(scpc_x) if e(sample)				
+				mata set_Wx_nocluster("`clist'", "`scpc_sel'")
+			}
+		else{
+			qui by `e(clustvar)': egen scpc_xs=total(scpc_x*scpc_x) if e(sample)
+			qui replace scpc_xs=scpc_x/sqrt(scpc_xs) if e(sample) & scpc_xs>0			
+			mata set_Wx_cluster("`clist'", "`scpc_sel'")
+			}
+		}		
+		mata set_scpcstats("`w'","`scpc_sel'")
 		matrix scpctab[`i', 1] = scpcstats[1, 1..6]
+		if("`cvs'"=="cvs"){
+			mata set_scpccvs()
+			matrix scpc_cvs[`i', 1] = scpc_cvs_c[1, 1..4]
+		}
 		local ++i
 	}
 	matrix colnames scpctab = "Coef" "Std_Err" "  t  " "P>|t|" "95% Conf" "Interval"
@@ -704,30 +886,42 @@ program scpc, eclass sortpreserve
 	local tit "SCPC Inference for first `k' coefficients"
 	matlist scpctab, border(all) title(`tit') cspec(o2& %12s | %9.0g o2 & %9.0g o2 &o1 %5.2f o1& o2 %6.3f o1 & o2 %9.0g & o1 %9.0g o2&) rspec(`rs')
 	if("`cvs'"=="cvs"){
-		mata set_scpccvs()
-		matrix rownames scpc_cvs ="Two-Sided" "One-Sided"
+//		mata set_scpccvs()
+//		matrix rownames scpc_cvs ="Two-Sided" "One-Sided"
 		matrix colnames scpc_cvs ="32%" "10%" "5%" "1%" 
-		matlist scpc_cvs, border(all) title("Critical values of SCPC t-test")  cspec(o2& %12s | %6.3f o2 & %6.3f o2 & %6.3f o2 & %6.3f o2 &) rspec(&-&&)
+		local n = rowsof(scpc_cvs)
+		local ands = `n'*"&"
+		local rs &-`ands'
+		matlist scpc_cvs, border(all) title("Two-Sided Critical values of SCPC t-tests")  cspec(o2& %12s | %6.3f o2 & %6.3f o2 & %6.3f o2 & %6.3f o2 &) rspec(`rs')
 		ereturn matrix scpccvs = scpc_cvs
 	}
  	// Return results
 	ereturn matrix scpcstats = scpctab
-	cap drop scpc_score*
+	cap drop scpc_*
 end
 
 capture program drop analyticV
-program analyticV
+program analyticV, sortpreserve
 // compares stata covariance matrix with covariance matrix implied by scores and sandwich formula
 // should return values close to one or something is wrong
     matrix scpc_Bread=e(V_modelbased)
     if( scpc_Bread[1,1]==.) {
         disp as text "e(V_modelbased) missing; aborting"
         exit(999)
-    }   
+    } 
+	if( "`e(clustvar)'"!="") {
+		tempvar es
+		gen `es'=0 if e(sample)
+		sort `e(clustvar)' `es'
+	}
+
     tempvar scpc_sel
     scpc_setscores, scpc_sel(`scpc_sel')
     qui corr scpc_score* if `scpc_sel' == 1, cov
     tempname V
+//matlist scpc_Bread
+//mat `V'= r(C)
+//matlist `V'
     mat `V'= r(N)*scpc_Bread*r(C)*scpc_Bread'
 	di "number of terms in score:", r(N)
 	mata Vx=st_matrix("`V'")
