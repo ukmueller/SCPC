@@ -411,7 +411,7 @@ struct mats vector LNgetOms(real matrix s, real scalar c0, real scalar cmax,real
 	c=c0
 	for(i=1;i<=length(Oms);i++){
 		cd=exp(-c*dist)
-		Oms[i].mat=I(qmax+1)+.5*(n*(n-1)/capM)*(cross(W1,cd,W2)+cross(W2,cd,W1))
+		Oms[i].mat=I(cols(W))+.5*(n*(n-1)/capM)*(cross(W1,cd,W2)+cross(W2,cd,W1))
 		c=c*cgridfac			
 	}
 	return(Oms)
@@ -610,7 +610,7 @@ void set_Wx_cluster(string scalar Vname, string scalar sel)
 		stata("cap drop scpc_rx")
 		stata("qui by `e(clustvar)': egen scpc_rx=total(scpc_r*scpc_x) if e(sample)")
 		
-		Wx[.,i]=st_data(.,"scpc_rx",sel)
+		Wx[.,i]=st_data(.,"scpc_rx",sel)[permfin]
 	}
 	set_ccspc()
 }
@@ -645,7 +645,7 @@ void set_Wx_nocluster(string scalar Vname, string scalar sel)
 			stata("_estimates unhold oreg")
 			stata("qui replace scpc_rx=scpc_r*scpc_x if e(sample)")
 		}		
-		Wx[.,i]=st_data(.,"scpc_rx",sel)		
+		Wx[.,i]=st_data(.,"scpc_rx",sel)[permfin]		
 	}	
 	set_ccspc()
 }
