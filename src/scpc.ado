@@ -618,7 +618,7 @@ void set_Wx_cluster(string scalar Vname, string scalar sel)
 		stata("qui replace scpc_r=0 if e(sample)")
 		st_store(.,"scpc_r",sel,r)
 		stata("cap drop scpc_rx")
-		stata("qui by `e(clustvar)': egen scpc_rx=total(scpc_r) if e(sample)")	
+		stata("qui by \`e(clustvar)': egen scpc_rx=total(scpc_r) if e(sample)")	// BACKSLASH TO PREVENT EVALUATION WHEN FUNCTION IS FIRST READ
 		stata("cap drop scpc_r")
 		if(i==1){
 			stata("qui gen scpc_r=scpc_rx*scpc_xs if e(sample)")
@@ -631,7 +631,7 @@ void set_Wx_cluster(string scalar Vname, string scalar sel)
 			stata("_estimates unhold oreg")
 		}
 		stata("cap drop scpc_rx")
-		stata("qui by `e(clustvar)': egen scpc_rx=total(scpc_r*scpc_x) if e(sample)")
+		stata("qui by \`e(clustvar)': egen scpc_rx=total(scpc_r*scpc_x) if e(sample)")  // BACKSLASH TO PREVENT EVALUATION WHEN FUNCTION IS FIRST READ
 		
 		Wx[.,i]=st_data(.,"scpc_rx",sel)[permfin]
 	}
@@ -807,6 +807,24 @@ program scpc, eclass sortpreserve
 		disp as text "average correlation must be between 0.001 and 0.99; aborting"
 		exit(999)
 	}
+	
+	// ENSURE COORDINATES ARE UNIQUE WITHIN CLUSTERS
+	if( "`e(clustvar)'"!="") {
+		unab tmp_svarlist: s_*
+		qui foreach tmp_svar of varlist `tmp_svarlist'{
+			tempvar unique_coords_tag
+			tempvar unique_coords_num
+			egen `unique_coords_tag' = tag(`e(clustvar)' `tmp_svar')
+			egen `unique_coords_num' = total(`unique_coords_tag'), by(`e(clustvar)')
+			sum `unique_coords_num'
+			if (`r(min)'!=1 | `r(max)'!=1){
+				noi disp as text "coordinates not constant within clusters; aborting"
+				exit(999)
+			}
+		}
+	}
+	// -----------------------------------------
+	
 	if( "`e(clustvar)'"!="") {
 		tempvar es
 		gen `es'=0 if e(sample)
@@ -922,6 +940,7 @@ program scpc, eclass sortpreserve
 	ereturn matrix scpcstats = scpctab
 	cap drop scpc_*
 end
+
 
 capture program drop analyticV
 program analyticV, sortpreserve
