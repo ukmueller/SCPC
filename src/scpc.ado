@@ -599,8 +599,47 @@ void set_ccspc()
 	cvxfin=getcv(Omsxfin,cols(Wx)-1,0.05)	
 }
 
+struct iv_adjoint {
+	string scalar sample
+	real matrix observed, fitted_bread
+}
+
+struct iv_adjoint scalar make_iv_adjoint(string scalar observed_vars,
+	string scalar fitted_vars, string scalar sample)
+{
+	struct iv_adjoint scalar iv
+	real matrix fitted
+
+	iv.sample=sample
+	iv.observed=st_data(.,tokens(observed_vars),sample)
+	iv.observed=(iv.observed,J(rows(iv.observed),1,1))
+	fitted=(st_data(.,tokens(fitted_vars),sample),J(rows(iv.observed),1,1))
+	// With fitted=P_Z*observed, M' = I - fitted*inv(fitted'*fitted)*observed'.
+	iv.fitted_bread=fitted*invsym(quadcross(fitted,fitted))
+	return(iv)
+}
+
+void residualize_Wx(string scalar Vname, struct iv_adjoint scalar iv)
+{
+	real colvector weight
+
+	stata("cap drop scpc_r")
+	if(iv.sample==""){
+		stata("_estimates hold oreg, restore")
+		stata(Vname)
+		stata("qui predict scpc_r, resid")
+		stata("_estimates unhold oreg")
+	}
+	else{
+		// Section 5.3: apply M' using the observed and first-stage fitted designs.
+		weight=st_data(.,"scpc_rx",iv.sample)
+		stata("qui gen double scpc_r=.")
+		st_store(.,"scpc_r",iv.sample,weight-iv.fitted_bread*quadcross(iv.observed,weight))
+	}
+}
+
 void set_Wx_cluster(string scalar Vname, string scalar sel,
-	string scalar weight_before, string scalar weight_after)
+	struct iv_adjoint scalar iv)
 {	
 	external real scalar condflag
 	external real matrix Wfin
@@ -620,19 +659,15 @@ void set_Wx_cluster(string scalar Vname, string scalar sel,
 		st_store(.,"scpc_r",sel,r)
 		stata("cap drop scpc_rx")
 		stata("qui by \`e(clustvar)': egen scpc_rx=total(scpc_r) if e(sample)")	// BACKSLASH TO PREVENT EVALUATION WHEN FUNCTION IS FIRST READ
-		stata("cap drop scpc_r")
 		if(i==1){
-			stata("qui gen scpc_r=scpc_rx*"+weight_before+" if e(sample)")
+			stata("qui replace scpc_r=scpc_rx*scpc_x if e(sample)")
 		}
 		else{
-			stata("qui replace scpc_rx=scpc_rx*"+weight_before)
-			stata("_estimates hold oreg, restore")		
-			stata(Vname)
-			stata("qui predict scpc_r, resid")	
-			stata("_estimates unhold oreg")
+			stata("qui replace scpc_rx=scpc_rx*scpc_x")
+			residualize_Wx(Vname,iv)
 		}
 		stata("cap drop scpc_rx")
-		stata("qui by \`e(clustvar)': egen scpc_rx=total(scpc_r*"+weight_after+") if e(sample)")  // BACKSLASH TO PREVENT EVALUATION WHEN FUNCTION IS FIRST READ
+		stata("qui by \`e(clustvar)': egen scpc_rx=total(scpc_r*scpc_xs) if e(sample)")  // BACKSLASH TO PREVENT EVALUATION WHEN FUNCTION IS FIRST READ
 		
 		Wx[.,i]=st_data(.,"scpc_rx",sel)[permfin]
 	}
@@ -640,7 +675,7 @@ void set_Wx_cluster(string scalar Vname, string scalar sel,
 }
 
 void set_Wx_nocluster(string scalar Vname, string scalar sel,
-	string scalar weight_before, string scalar weight_after)
+	struct iv_adjoint scalar iv)
 {	
 	external real scalar condflag
 	external real matrix Wfin
@@ -662,13 +697,9 @@ void set_Wx_nocluster(string scalar Vname, string scalar sel,
 			stata("qui gen scpc_rx=scpc_r*scpc_xs*scpc_x if e(sample)")
 		}
 		else{
-			stata("qui gen scpc_rx=scpc_r*"+weight_before+" if e(sample)")
-			stata("_estimates hold oreg, restore")
-			stata(Vname)
-			stata("cap drop scpc_r")
-			stata("qui predict scpc_r, resid")	
-			stata("_estimates unhold oreg")
-			stata("qui replace scpc_rx=scpc_r*"+weight_after+" if e(sample)")
+			stata("qui gen scpc_rx=scpc_r*scpc_x if e(sample)")
+			residualize_Wx(Vname,iv)
+			stata("qui replace scpc_rx=scpc_r*scpc_xs if e(sample)")
 		}		
 		Wx[.,i]=st_data(.,"scpc_rx",sel)[permfin]		
 	}	
@@ -837,13 +868,12 @@ program scpc, eclass sortpreserve
 	mata setOmsWfin(`avc',"`scpc_sel'","`latlong'")
 	
 	qui sum `scpc_sel', detail
-	tempname neff 
+	tempname neff iv
 	matrix `neff'=r(sum)
 	matrix b=e(b)	
 	matrix scpc_Bread0=e(V_modelbased)
 	local clist 
-	local weight_before scpc_xs
-	local weight_after scpc_x
+	mata: `iv'=iv_adjoint()
 	local na : colnames b
 	if(e(cmd)=="regress"){
 		tokenize `na'
@@ -853,9 +883,6 @@ program scpc, eclass sortpreserve
 			}
 		}
 		local clist="qui reg scpc_rx `clist'"
-		// Section 5.1 uses Xi_s' M_V Xi R for the OLS denominator weights.
-		local weight_before scpc_x
-		local weight_after scpc_xs
 	}	
 	else if(e(cmd)=="ivregress"){
 		local elist `e(insts)'
@@ -871,7 +898,7 @@ program scpc, eclass sortpreserve
 		forval j = 1/`= colsof(b)' {
 			if(`j'<`i'){			
 				qui reg ``j'' `elist' if `ess'
-				qui predict scpc_fs_`j', xb
+				qui predict double scpc_fs_`j', xb
 				qui replace scpc_fs_`j'=. if !`ess'
 				local clist `clist' scpc_fs_`j'
 			}
@@ -881,7 +908,12 @@ program scpc, eclass sortpreserve
 		}
 		matrix colnames scpc_Bread0 = `clist'
 		_estimates unhold oreg		
-		local clist="qui ivregress 2sls scpc_rx `e(exogr)' (`e(instd)' = `e(insts)' )"	
+		if("`uncond'"==""){
+			local cons _cons
+			local observed : list na - cons
+			local fitted : list clist - cons
+			mata: `iv'=make_iv_adjoint("`observed'","`fitted'","`ess'")
+		}
 	}
 	else if("`uncond'"==""){
 		disp as text "conditional critical values only supported for ivregress 2sls and regress, use option uncond for only unconditionally valid critical values; aborting"
@@ -910,12 +942,12 @@ program scpc, eclass sortpreserve
 			qui matrix score scpc_x = coef if e(sample)						
 			if( "`e(clustvar)'"=="") {
 				qui gen scpc_xs=sign(scpc_x) if e(sample)				
-				mata set_Wx_nocluster("`clist'", "`scpc_sel'", "`weight_before'", "`weight_after'")
+				mata set_Wx_nocluster("`clist'", "`scpc_sel'", `iv')
 			}
 		else{
 			qui by `e(clustvar)': egen scpc_xs=total(scpc_x*scpc_x) if e(sample)
 			qui replace scpc_xs=scpc_x/sqrt(scpc_xs) if e(sample) & scpc_xs>0			
-			mata set_Wx_cluster("`clist'", "`scpc_sel'", "`weight_before'", "`weight_after'")
+			mata set_Wx_cluster("`clist'", "`scpc_sel'", `iv')
 			}
 		}		
 		mata set_scpcstats("`w'","`scpc_sel'")
@@ -944,6 +976,7 @@ program scpc, eclass sortpreserve
 		ereturn matrix scpccvs = scpc_cvs
 	}
  	// Return results
+	mata: mata drop `iv'
 	ereturn matrix scpcstats = scpctab
 	cap drop scpc_*
 end
