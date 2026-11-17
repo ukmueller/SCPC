@@ -599,7 +599,8 @@ void set_ccspc()
 	cvxfin=getcv(Omsxfin,cols(Wx)-1,0.05)	
 }
 
-void set_Wx_cluster(string scalar Vname, string scalar sel)
+void set_Wx_cluster(string scalar Vname, string scalar sel,
+	string scalar weight_before, string scalar weight_after)
 {	
 	external real scalar condflag
 	external real matrix Wfin
@@ -621,24 +622,25 @@ void set_Wx_cluster(string scalar Vname, string scalar sel)
 		stata("qui by \`e(clustvar)': egen scpc_rx=total(scpc_r) if e(sample)")	// BACKSLASH TO PREVENT EVALUATION WHEN FUNCTION IS FIRST READ
 		stata("cap drop scpc_r")
 		if(i==1){
-			stata("qui gen scpc_r=scpc_rx*scpc_xs if e(sample)")
+			stata("qui gen scpc_r=scpc_rx*"+weight_before+" if e(sample)")
 		}
 		else{
-			stata("qui replace scpc_rx=scpc_rx*scpc_xs")
+			stata("qui replace scpc_rx=scpc_rx*"+weight_before)
 			stata("_estimates hold oreg, restore")		
 			stata(Vname)
 			stata("qui predict scpc_r, resid")	
 			stata("_estimates unhold oreg")
 		}
 		stata("cap drop scpc_rx")
-		stata("qui by \`e(clustvar)': egen scpc_rx=total(scpc_r*scpc_x) if e(sample)")  // BACKSLASH TO PREVENT EVALUATION WHEN FUNCTION IS FIRST READ
+		stata("qui by \`e(clustvar)': egen scpc_rx=total(scpc_r*"+weight_after+") if e(sample)")  // BACKSLASH TO PREVENT EVALUATION WHEN FUNCTION IS FIRST READ
 		
 		Wx[.,i]=st_data(.,"scpc_rx",sel)[permfin]
 	}
 	set_ccspc()
 }
 
-void set_Wx_nocluster(string scalar Vname, string scalar sel)
+void set_Wx_nocluster(string scalar Vname, string scalar sel,
+	string scalar weight_before, string scalar weight_after)
 {	
 	external real scalar condflag
 	external real matrix Wfin
@@ -660,13 +662,13 @@ void set_Wx_nocluster(string scalar Vname, string scalar sel)
 			stata("qui gen scpc_rx=scpc_r*scpc_xs*scpc_x if e(sample)")
 		}
 		else{
-			stata("qui gen scpc_rx=scpc_r*scpc_xs if e(sample)")
+			stata("qui gen scpc_rx=scpc_r*"+weight_before+" if e(sample)")
 			stata("_estimates hold oreg, restore")
 			stata(Vname)
 			stata("cap drop scpc_r")
 			stata("qui predict scpc_r, resid")	
 			stata("_estimates unhold oreg")
-			stata("qui replace scpc_rx=scpc_r*scpc_x if e(sample)")
+			stata("qui replace scpc_rx=scpc_r*"+weight_after+" if e(sample)")
 		}		
 		Wx[.,i]=st_data(.,"scpc_rx",sel)[permfin]		
 	}	
@@ -840,6 +842,8 @@ program scpc, eclass sortpreserve
 	matrix b=e(b)	
 	matrix scpc_Bread0=e(V_modelbased)
 	local clist 
+	local weight_before scpc_xs
+	local weight_after scpc_x
 	local na : colnames b
 	if(e(cmd)=="regress"){
 		tokenize `na'
@@ -849,6 +853,9 @@ program scpc, eclass sortpreserve
 			}
 		}
 		local clist="qui reg scpc_rx `clist'"
+		// Section 5.1 uses Xi_s' M_V Xi R for the OLS denominator weights.
+		local weight_before scpc_x
+		local weight_after scpc_xs
 	}	
 	else if(e(cmd)=="ivregress"){
 		local elist `e(insts)'
@@ -903,12 +910,12 @@ program scpc, eclass sortpreserve
 			qui matrix score scpc_x = coef if e(sample)						
 			if( "`e(clustvar)'"=="") {
 				qui gen scpc_xs=sign(scpc_x) if e(sample)				
-				mata set_Wx_nocluster("`clist'", "`scpc_sel'")
+				mata set_Wx_nocluster("`clist'", "`scpc_sel'", "`weight_before'", "`weight_after'")
 			}
 		else{
 			qui by `e(clustvar)': egen scpc_xs=total(scpc_x*scpc_x) if e(sample)
 			qui replace scpc_xs=scpc_x/sqrt(scpc_xs) if e(sample) & scpc_xs>0			
-			mata set_Wx_cluster("`clist'", "`scpc_sel'")
+			mata set_Wx_cluster("`clist'", "`scpc_sel'", "`weight_before'", "`weight_after'")
 			}
 		}		
 		mata set_scpcstats("`w'","`scpc_sel'")
